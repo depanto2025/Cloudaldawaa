@@ -153,12 +153,11 @@ class CloudStorageManager {
 
         const publicUrl = urlData?.publicUrl || '';
 
-        // 2. Insert record in DB
+        // 2. Insert record in DB (letting Supabase generate the UUID)
         const { data: record, error: dbError } = await this.supabaseClient
           .from('uploaded_files')
           .insert([
             {
-              id: fileId,
               session_id: sessionId,
               device_id: deviceId,
               client_name: clientName || null,
@@ -181,7 +180,7 @@ class CloudStorageManager {
         onProgress(100);
 
         const savedRecord = {
-          id: fileId,
+          id: record?.id || fileId,
           sessionId,
           deviceId,
           clientName,
