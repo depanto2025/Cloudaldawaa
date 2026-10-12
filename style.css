@@ -1650,3 +1650,85 @@ html[dir="ltr"] .toast.error {
 html[dir="ltr"] .qr-instructions {
   text-align: left;
 }
+
+/* ==========================================================================
+   Retention Settings Card Styles
+   ========================================================================== */
+.retention-settings-card {
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  border-right: 4px solid var(--orange-primary);
+}
+
+html[dir="ltr"] .retention-settings-card {
+  border-right: 1px solid var(--border-glass);
+  border-left: 4px solid var(--orange-primary);
+}
+
+.retention-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.retention-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.retention-icon {
+  font-size: 1.6rem;
+  background: var(--orange-light);
+  padding: 8px;
+  border-radius: var(--radius-md);
+}
+
+.retention-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--white-pure);
+  margin-bottom: 2px;
+}
+
+.retention-desc {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.retention-inputs-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.retention-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-light);
+}
+
+.number-input {
+  width: 70px;
+  background: rgba(7, 15, 30, 0.8);
+  border: 1px solid var(--border-navy);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  color: var(--orange-hover);
+  font-family: var(--font-code);
+  font-weight: 700;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.number-input:focus {
+  outline: none;
+  border-color: var(--orange-primary);
+  box-shadow: 0 0 0 3px rgba(255, 107, 0, 0.2);
+}

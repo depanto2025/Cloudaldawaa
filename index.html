@@ -35,7 +35,7 @@
               <span data-i18n="appTitle">سحاب دوكس</span>
               <span class="badge-tag" data-i18n="badgeStorage">سوبر بيز</span>
             </h1>
-            <p class="brand-subtitle" data-i18n="appSubtitle">نظام رفع المستندات والتأمين الذكي والمؤقت (72 ساعة)</p>
+            <p class="brand-subtitle admin-only" data-i18n="appSubtitle">نظام رفع المستندات والتأمين الذكي والمؤقت</p>
           </div>
         </div>
 
@@ -105,7 +105,7 @@
     <div id="storage-status-bar" class="status-banner local-mode admin-only">
       <div class="banner-inner">
         <span class="status-indicator"></span>
-        <span id="storage-status-text">نظام التخزين: وضع الاختبار التلقائي (جاهز للربط الفوري مع Supabase)</span>
+        <span id="storage-status-text">نظام التخزين: متصل بـ Supabase</span>
         <button id="btn-quick-config" class="btn-link">إعداد مفاتيح Supabase ⚡</button>
       </div>
     </div>
@@ -114,44 +114,11 @@
     <main class="main-body">
 
       <!-- ======================================================== -->
-      <!-- VIEW 1: CLIENT UPLOAD PORTAL (واجهة العميل النظيفة) -->
+      <!-- VIEW 1: CLIENT UPLOAD PORTAL (واجهة العميل البسيطة والسريعة) -->
       <!-- ======================================================== -->
       <section id="view-client" class="view-panel active" aria-labelledby="tab-client">
         <div class="container-narrow">
           
-          <!-- Welcome & Device Info Card -->
-          <div class="glass-card client-header-card">
-            <div class="client-header-top">
-              <div class="device-badge-wrap">
-                <span class="badge-icon">📱</span>
-                <div>
-                  <div class="device-label" data-i18n="deviceLabel">معرف جهازك الموثق (بدون تسجيل دخول):</div>
-                  <div id="client-device-id" class="device-id-code">جهاز #...</div>
-                </div>
-              </div>
-              <div class="security-badge">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                </svg>
-                <span data-i18n="securityBadge">حفظ آمن ومؤقت (3 أيام)</span>
-              </div>
-            </div>
-
-            <!-- Optional Customer Note / Name / Policy Number -->
-            <div class="client-meta-inputs">
-              <div class="input-field-group">
-                <label for="input-client-name" class="input-label" data-i18n="clientNameLabel">اسم العميل / رقم الوثيقة أو التأمين (اختياري للتمييز):</label>
-                <div class="input-with-icon">
-                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
-                    <circle cx="12" cy="7" r="4"/>
-                  </svg>
-                  <input type="text" id="input-client-name" class="text-input" placeholder="مثال: أحمد محمد - تأمين سيارات #9021" dir="auto" data-i18n-placeholder="clientNamePlaceholder">
-                </div>
-              </div>
-            </div>
-          </div>
-
           <!-- Drag and Drop Upload Zone -->
           <div class="glass-card upload-zone-card">
             <div id="drop-area" class="drop-zone" role="button" tabindex="0">
@@ -189,12 +156,6 @@
                   <span data-i18n="btnTriggerCamera">تصوير مباشر بالكاميرا</span>
                 </button>
               </div>
-
-              <div class="drop-features">
-                <span class="feature-tag" data-i18n="tagInstant">⚡ رفع فوري ومباشر</span>
-                <span class="feature-tag" data-i18n="tagEncrypted">🔒 مشفر وخاص</span>
-                <span class="feature-tag" data-i18n="tagAutoExpire">⏳ حذف آلي بعد 3 أيام</span>
-              </div>
             </div>
 
             <!-- Upload Progress Bar Area -->
@@ -213,10 +174,9 @@
           <div class="client-files-section">
             <div class="section-heading">
               <div class="heading-title-group">
-                <h3 class="section-title" data-i18n="clientSectionTitle">المستندات التي قمت برفعها في هذه الجلسة</h3>
+                <h3 class="section-title" data-i18n="clientSectionTitle">المستندات التي قمت برفعها</h3>
                 <span id="client-files-count" class="badge-count">0 مستندات</span>
               </div>
-              <p class="section-desc" data-i18n="clientSectionDesc">هذه الملفات محفوظة حالياً في السيرفر وتُحذف تلقائياً بعد 3 أيام من تاريخ رفعها.</p>
             </div>
 
             <div id="client-files-list" class="files-grid">
@@ -303,6 +263,31 @@
               </div>
             </div>
 
+          </div>
+
+          <!-- Storage Retention Settings Bar (Admin Control for days per file type) -->
+          <div class="glass-card retention-settings-card">
+            <div class="retention-row">
+              <div class="retention-info">
+                <span class="retention-icon">⚙️</span>
+                <div>
+                  <h4 class="retention-title" data-i18n="retentionTitle">التحكم في فترة حفظ الملفات حسب النوع:</h4>
+                  <p class="retention-desc" data-i18n="retentionDesc">حدد عدد أيام بقاء الصور والـ PDF قبل الحذف التلقائي من السيرفر</p>
+                </div>
+              </div>
+
+              <div class="retention-inputs-group">
+                <div class="retention-item">
+                  <label for="input-retention-image" data-i18n="labelDaysImages">مدة الصور (أيام):</label>
+                  <input type="number" id="input-retention-image" class="number-input" min="1" max="365" value="3">
+                </div>
+                <div class="retention-item">
+                  <label for="input-retention-pdf" data-i18n="labelDaysPdf">مدة الـ PDF (أيام):</label>
+                  <input type="number" id="input-retention-pdf" class="number-input" min="1" max="365" value="3">
+                </div>
+                <button id="btn-save-retention" class="btn btn-orange" data-i18n="btnSaveRetention">تطبيق المدة</button>
+              </div>
+            </div>
           </div>
 
           <!-- Filter, Search and Actions Bar -->

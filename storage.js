@@ -6,11 +6,44 @@ const STORAGE_KEYS = {
   SUPABASE_URL: 'cloud_doc_supabase_url',
   SUPABASE_ANON: 'cloud_doc_supabase_anon',
   SUPABASE_BUCKET: 'cloud_doc_supabase_bucket',
-  LOCAL_FILES: 'cloud_doc_local_files_v1'
+  LOCAL_FILES: 'cloud_doc_local_files_v1',
+  RETENTION_SETTINGS: 'cloud_doc_retention_days'
 };
 
-// 3 Days in milliseconds (72 hours)
+// Default Retention in days per type
 export const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const DEFAULT_RETENTION_DAYS = {
+  default: 3,
+  image: 3,
+  pdf: 3
+};
+
+// Get Retention configuration
+export function getRetentionSettings() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.RETENTION_SETTINGS);
+    return raw ? { ...DEFAULT_RETENTION_DAYS, ...JSON.parse(raw) } : { ...DEFAULT_RETENTION_DAYS };
+  } catch {
+    return { ...DEFAULT_RETENTION_DAYS };
+  }
+}
+
+// Save Retention configuration
+export function saveRetentionSettings(settings) {
+  localStorage.setItem(STORAGE_KEYS.RETENTION_SETTINGS, JSON.stringify(settings));
+}
+
+// Calculate TTL duration in milliseconds for a file based on its mimeType
+export function getTtlMsForMime(mimeType) {
+  const settings = getRetentionSettings();
+  let days = settings.default || 3;
+  if (mimeType.startsWith('image/')) {
+    days = settings.image || days;
+  } else if (mimeType.includes('pdf')) {
+    days = settings.pdf || days;
+  }
+  return days * 24 * 60 * 60 * 1000;
+}
 
 // Device ID management (Anonymous device identifier without login)
 export function getOrCreateDeviceId() {
@@ -87,7 +120,9 @@ class CloudStorageManager {
     const deviceId = getOrCreateDeviceId();
     const sessionId = this.getSessionId();
     const now = Date.now();
-    const expiresAt = now + THREE_DAYS_MS;
+    const mimeType = file.type || 'application/octet-stream';
+    const ttlMs = getTtlMsForMime(mimeType);
+    const expiresAt = now + ttlMs;
     const fileId = 'file_' + Math.random().toString(36).substring(2, 9) + '_' + now;
 
     if (this.isSupabaseConfigured && this.supabaseClient) {
@@ -129,7 +164,7 @@ class CloudStorageManager {
               client_name: clientName || null,
               file_name: file.name,
               file_size: file.size,
-              mime_type: file.type || 'application/octet-stream',
+              mime_type: mimeType,
               storage_path: storagePath,
               public_url: publicUrl,
               created_at: new Date(now).toISOString(),
@@ -140,7 +175,7 @@ class CloudStorageManager {
           .single();
 
         if (dbError) {
-          console.warn('تنبيه: تم رفع الملف للتخزين ولكن تعذر التسجيل في الجدول، سيتم الحفظ محلياً أيضاً:', dbError.message);
+          console.warn('تنبيه: تعذر التسجيل في جدول Supabase DB:', dbError.message);
         }
 
         onProgress(100);
@@ -152,36 +187,34 @@ class CloudStorageManager {
           clientName,
           fileName: file.name,
           fileSize: file.size,
-          mimeType: file.type,
+          mimeType,
           url: publicUrl,
           createdAt: now,
           expiresAt
         };
 
-        // Cache locally for fallback and quick offline display
         this.saveLocalRecord(savedRecord);
         return savedRecord;
       } catch (err) {
-        console.error('Supabase upload error, falling back to local demo:', err);
-        // Fallback to local mode
+        console.error('Supabase upload error, fallback to local demo:', err);
         return await this.uploadLocalDemo(file, clientName, onProgress);
       }
     } else {
-      // Local Demo Mode
       return await this.uploadLocalDemo(file, clientName, onProgress);
     }
   }
 
-  // Upload to local storage with Blob URL and Base64 preview
+  // Upload to local storage with Blob URL
   async uploadLocalDemo(file, clientName, onProgress) {
     onProgress(30);
     const deviceId = getOrCreateDeviceId();
     const sessionId = this.getSessionId();
     const now = Date.now();
-    const expiresAt = now + THREE_DAYS_MS;
+    const mimeType = file.type || 'application/octet-stream';
+    const ttlMs = getTtlMsForMime(mimeType);
+    const expiresAt = now + ttlMs;
     const fileId = 'file_' + Math.random().toString(36).substring(2, 9) + '_' + now;
 
-    // Convert small files to data URL, or create object URL
     const dataUrl = await this.fileToDataUrl(file);
     onProgress(85);
 
@@ -189,10 +222,10 @@ class CloudStorageManager {
       id: fileId,
       sessionId,
       deviceId,
-      clientName: clientName || 'عميل تجريبي',
+      clientName: clientName || '',
       fileName: file.name,
       fileSize: file.size,
-      mimeType: file.type,
+      mimeType,
       url: dataUrl,
       createdAt: now,
       expiresAt
@@ -205,7 +238,6 @@ class CloudStorageManager {
 
   fileToDataUrl(file) {
     return new Promise((resolve) => {
-      // For large files (> 3MB in demo), use object URL to prevent localStorage quota issues
       if (file.size > 3 * 1024 * 1024) {
         resolve(URL.createObjectURL(file));
         return;
@@ -217,17 +249,16 @@ class CloudStorageManager {
     });
   }
 
-  // Retrieve files from Supabase or LocalStorage, filtering out files older than 3 days
+  // Retrieve files from Supabase or LocalStorage, filtering out expired files
   async getAllActiveFiles() {
     const now = Date.now();
 
     if (this.isSupabaseConfigured && this.supabaseClient) {
       try {
-        const threeDaysAgoIso = new Date(now - THREE_DAYS_MS).toISOString();
         const { data, error } = await this.supabaseClient
           .from('uploaded_files')
           .select('*')
-          .gte('created_at', threeDaysAgoIso)
+          .gte('expires_at', new Date(now).toISOString())
           .order('created_at', { ascending: false });
 
         if (!error && data) {
@@ -241,7 +272,7 @@ class CloudStorageManager {
             mimeType: item.mime_type,
             url: item.public_url || '',
             createdAt: new Date(item.created_at).getTime(),
-            expiresAt: item.expires_at ? new Date(item.expires_at).getTime() : new Date(item.created_at).getTime() + THREE_DAYS_MS
+            expiresAt: item.expires_at ? new Date(item.expires_at).getTime() : new Date(item.created_at).getTime() + getTtlMsForMime(item.mime_type)
           }));
         }
       } catch (err) {
@@ -249,9 +280,7 @@ class CloudStorageManager {
       }
     }
 
-    // Local Storage filter
     const local = this.getLocalRecords();
-    // Clean expired files (older than 3 days)
     const validFiles = local.filter((item) => item.expiresAt > now);
     if (validFiles.length !== local.length) {
       localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(validFiles));
@@ -285,7 +314,7 @@ class CloudStorageManager {
     localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(filtered));
   }
 
-  // Clean all expired files (+3 days)
+  // Clean all expired files
   async purgeExpiredFiles() {
     const now = Date.now();
     const local = this.getLocalRecords();
@@ -295,11 +324,10 @@ class CloudStorageManager {
 
     if (this.isSupabaseConfigured && this.supabaseClient) {
       try {
-        const threeDaysAgoIso = new Date(now - THREE_DAYS_MS).toISOString();
         await this.supabaseClient
           .from('uploaded_files')
           .delete()
-          .lt('created_at', threeDaysAgoIso);
+          .lt('expires_at', new Date(now).toISOString());
       } catch (err) {
         console.warn('Supabase purge error:', err);
       }
@@ -308,7 +336,6 @@ class CloudStorageManager {
     return purgedCount;
   }
 
-  // Local record helpers
   getLocalRecords() {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.LOCAL_FILES);
@@ -320,21 +347,17 @@ class CloudStorageManager {
 
   saveLocalRecord(record) {
     const records = this.getLocalRecords();
-    // remove duplicate if exists
     const updated = [record, ...records.filter((r) => r.id !== record.id)];
     try {
       localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(updated));
     } catch (e) {
-      console.warn('LocalStorage quota reached, keeping last 20 files only', e);
       localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(updated.slice(0, 20)));
     }
   }
 
-  // Session ID management
   getSessionId() {
     let sid = sessionStorage.getItem('cloud_doc_session_id');
     if (!sid) {
-      // Check URL query param first (if user scanned a QR with session code)
       const urlParams = new URLSearchParams(window.location.search);
       sid = urlParams.get('session');
       if (!sid) {
@@ -345,7 +368,6 @@ class CloudStorageManager {
     return sid;
   }
 
-  // Seed realistic demo files if empty so the user can immediately experience the 3-day countdown and dashboard
   seedDemoDataIfEmpty() {
     const existing = this.getLocalRecords();
     if (existing.length === 0) {
@@ -355,37 +377,25 @@ class CloudStorageManager {
           id: 'demo_1',
           sessionId: 'SES-A891',
           deviceId: 'DEV-C94K-92A',
-          clientName: 'أحمد محمود - تأمين بوبا الطبي',
+          clientName: 'أحمد محمود',
           fileName: 'وثيقة_التأمين_الطبي_2026.pdf',
           fileSize: 1420500,
           mimeType: 'application/pdf',
           url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          createdAt: now - 1000 * 60 * 60 * 18, // 18 hours ago
-          expiresAt: now - 1000 * 60 * 60 * 18 + THREE_DAYS_MS
+          createdAt: now - 1000 * 60 * 60 * 18,
+          expiresAt: now - 1000 * 60 * 60 * 18 + (3 * 24 * 60 * 60 * 1000)
         },
         {
           id: 'demo_2',
           sessionId: 'SES-B312',
           deviceId: 'DEV-889M-11X',
-          clientName: 'خالد السعيد - استمارة المركبة',
+          clientName: 'خالد السعيد',
           fileName: 'صورة_رخصة_القيادة_والتأمين.jpg',
           fileSize: 2150400,
           mimeType: 'image/jpeg',
           url: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&w=800&q=80',
-          createdAt: now - 1000 * 60 * 60 * 42, // 42 hours ago (expiring soon)
-          expiresAt: now - 1000 * 60 * 60 * 42 + THREE_DAYS_MS
-        },
-        {
-          id: 'demo_3',
-          sessionId: 'SES-F774',
-          deviceId: 'DEV-K29P-55Q',
-          clientName: 'مريم إبراهيم - تقرير حادث نجم',
-          fileName: 'تقرير_الحادث_والكروكي.pdf',
-          fileSize: 3100000,
-          mimeType: 'application/pdf',
-          url: 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf',
-          createdAt: now - 1000 * 60 * 25, // 25 mins ago
-          expiresAt: now - 1000 * 60 * 25 + THREE_DAYS_MS
+          createdAt: now - 1000 * 60 * 60 * 42,
+          expiresAt: now - 1000 * 60 * 60 * 42 + (3 * 24 * 60 * 60 * 1000)
         }
       ];
       localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(mockFiles));

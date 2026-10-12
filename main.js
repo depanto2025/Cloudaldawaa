@@ -1,29 +1,28 @@
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
-import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS } from './storage.js';
+import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS, getRetentionSettings, saveRetentionSettings } from './storage.js';
 
 // Multilingual Dictionary (Arabic & English)
 const TRANSLATIONS = {
   ar: {
     appTitle: 'سحاب دوكس',
     badgeStorage: 'سوبر بيز',
-    appSubtitle: 'نظام رفع المستندات والتأمين الذكي والمؤقت (72 ساعة)',
+    appSubtitle: 'نظام رفع المستندات والتأمين الذكي والمؤقت',
     tabClient: 'واجهة العميل',
     tabDashboard: 'الداشبورد (الإدارة)',
     btnClientBarcode: 'باركود العميل',
-    deviceLabel: 'معرف جهازك الموثق (بدون تسجيل دخول):',
-    securityBadge: 'حفظ آمن ومؤقت (3 أيام)',
-    clientNameLabel: 'اسم العميل / رقم الوثيقة أو التأمين (اختياري للتمييز):',
-    clientNamePlaceholder: 'مثال: أحمد محمد - تأمين سيارات #9021',
+    retentionTitle: 'التحكم في فترة حفظ الملفات حسب النوع:',
+    retentionDesc: 'حدد عدد أيام بقاء الصور والـ PDF قبل الحذف التلقائي من السيرفر',
+    labelDaysImages: 'مدة الصور (أيام):',
+    labelDaysPdf: 'مدة الـ PDF (أيام):',
+    btnSaveRetention: 'تطبيق المدة',
+    retentionSaved: 'تم تحديث فترات الحفظ بنجاح!',
     dropTitle: 'اسحب وأفلت الملفات هنا، أو اضغط للاختيار',
     dropSubtitle: 'ندعم صور التأمين والبطاقات (JPG, PNG) والمستندات (PDF)',
     btnBrowseFiles: 'اختيار ملفات من الجهاز',
     btnTriggerCamera: 'تصوير مباشر بالكاميرا',
-    tagInstant: '⚡ رفع فوري ومباشر',
-    tagEncrypted: '🔒 مشفر وخاص',
-    tagAutoExpire: '⏳ حذف آلي بعد 3 أيام',
     uploading: 'جاري رفع الملفات...',
-    clientSectionTitle: 'المستندات التي قمت برفعها في هذه الجلسة',
+    clientSectionTitle: 'المستندات التي قمت برفعها',
     clientSectionDesc: 'هذه الملفات محفوظة حالياً في السيرفر وتُحذف تلقائياً بعد 3 أيام من تاريخ رفعها.',
     emptyClientTitle: 'لم تقم برفع أي ملفات حتى الآن',
     emptyClientDesc: 'قم بسحب ملفات التأمين أو الهوية أو الضغط على زر الاختيار أعلاه لرفعها فوراً.',
@@ -92,23 +91,22 @@ const TRANSLATIONS = {
   en: {
     appTitle: 'Cloud Docs',
     badgeStorage: 'Supabase',
-    appSubtitle: 'Smart Temporary Document & Insurance Upload Portal (72 Hours)',
+    appSubtitle: 'Smart Temporary Document & Insurance Upload Portal',
     tabClient: 'Client Portal',
     tabDashboard: 'Admin Dashboard',
     btnClientBarcode: 'Client QR Code',
-    deviceLabel: 'Verified Device Identifier (No Login Required):',
-    securityBadge: 'Secure & Temporary (3 Days)',
-    clientNameLabel: 'Client Name / Policy or Insurance No. (Optional):',
-    clientNamePlaceholder: 'e.g. John Doe - Car Insurance #9021',
+    retentionTitle: 'File Retention Period by Type:',
+    retentionDesc: 'Define how many days images and PDFs stay before automatic purge',
+    labelDaysImages: 'Images Duration (Days):',
+    labelDaysPdf: 'PDF Duration (Days):',
+    btnSaveRetention: 'Apply Duration',
+    retentionSaved: 'Retention periods updated successfully!',
     dropTitle: 'Drag & drop files here, or click to browse',
     dropSubtitle: 'Supports insurance cards, photos (JPG, PNG) and documents (PDF)',
     btnBrowseFiles: 'Browse Files from Device',
     btnTriggerCamera: 'Take Live Photo (Camera)',
-    tagInstant: '⚡ Instant & Direct Upload',
-    tagEncrypted: '🔒 Encrypted & Private',
-    tagAutoExpire: '⏳ Auto-deleted after 3 days',
     uploading: 'Uploading files...',
-    clientSectionTitle: 'Documents Uploaded in This Session',
+    clientSectionTitle: 'Documents You Have Uploaded',
     clientSectionDesc: 'These files are securely saved on the server and will be automatically purged after 3 days.',
     emptyClientTitle: 'No documents uploaded yet',
     emptyClientDesc: 'Drag insurance papers, IDs, or tap the browse button above to upload immediately.',
@@ -222,6 +220,9 @@ const DOM = {
   adminTableBody: document.getElementById('admin-table-body'),
   adminEmptyState: document.getElementById('admin-empty-state'),
   filteredFilesCount: document.getElementById('filtered-files-count'),
+  inputRetentionImage: document.getElementById('input-retention-image'),
+  inputRetentionPdf: document.getElementById('input-retention-pdf'),
+  btnSaveRetention: document.getElementById('btn-save-retention'),
 
   // Modals & Triggers
   btnShowQr: document.getElementById('btn-show-qr'),
@@ -408,9 +409,20 @@ async function initApp() {
   // Seed demo data if local storage is blank
   storageManager.seedDemoDataIfEmpty();
 
-  // Display Device ID
+  // Display Device ID (if present in DOM)
   const deviceId = getOrCreateDeviceId();
-  DOM.clientDeviceId.textContent = deviceId;
+  if (DOM.clientDeviceId) {
+    DOM.clientDeviceId.textContent = deviceId;
+  }
+
+  // Populate retention inputs
+  const retention = getRetentionSettings();
+  if (DOM.inputRetentionImage) {
+    DOM.inputRetentionImage.value = retention.image || 3;
+  }
+  if (DOM.inputRetentionPdf) {
+    DOM.inputRetentionPdf.value = retention.pdf || 3;
+  }
 
   // Check URL parameters for navigation mode (?mode=admin vs ?mode=client)
   const urlParams = new URLSearchParams(window.location.search);
@@ -567,7 +579,7 @@ async function handleFilesUpload(filesList) {
   if (!filesList || filesList.length === 0) return;
 
   const files = Array.from(filesList);
-  const clientName = DOM.inputClientName.value.trim();
+  const clientName = DOM.inputClientName ? DOM.inputClientName.value.trim() : '';
 
   DOM.uploadProgressContainer.classList.remove('hidden');
   DOM.progressPercent.textContent = '0%';
@@ -867,6 +879,20 @@ function attachEventListeners() {
     await refreshAdminDashboard();
     await refreshClientFiles();
   });
+
+  // Save Retention Days per File Type
+  if (DOM.btnSaveRetention) {
+    DOM.btnSaveRetention.addEventListener('click', () => {
+      const imgDays = parseInt(DOM.inputRetentionImage.value) || 3;
+      const pdfDays = parseInt(DOM.inputRetentionPdf.value) || 3;
+      saveRetentionSettings({
+        default: 3,
+        image: imgDays,
+        pdf: pdfDays
+      });
+      showToast(t('retentionSaved'), 'success');
+    });
+  }
 
   // QR Modal
   DOM.btnShowQr.addEventListener('click', () => DOM.modalQr.classList.remove('hidden'));
