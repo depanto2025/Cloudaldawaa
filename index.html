@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بوابة رفع المستندات الذكية | Smart Cloud Docs</title>
+  
+  <!-- Google Fonts: Cairo & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body class="mode-client">
+  <!-- App Wrapper -->
+  <div class="app-container">
+    
+    <!-- Top Navigation Header -->
+    <header class="main-header">
+      <div class="header-content">
+        <!-- Logo & Branding -->
+        <div class="brand-group">
+          <div class="brand-logo">
+            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+              <polyline points="12 11 12 15"/>
+              <polyline points="9 13 12 10 15 13"/>
+            </svg>
+            <span class="pulse-dot"></span>
+          </div>
+          <div class="brand-text">
+            <h1 class="brand-title">
+              <span data-i18n="appTitle">سحاب دوكس</span>
+              <span class="badge-tag" data-i18n="badgeStorage">سوبر بيز</span>
+            </h1>
+            <p class="brand-subtitle" data-i18n="appSubtitle">نظام رفع المستندات والتأمين الذكي والمؤقت (72 ساعة)</p>
+          </div>
+        </div>
+
+        <!-- Header Actions: Language Switcher + Admin Tools (Only visible in Admin Mode) -->
+        <div class="header-actions">
+          
+          <!-- Language Switcher Button (Available for both Client & Admin) -->
+          <button id="btn-toggle-lang" class="btn btn-lang" title="تغيير اللغة / Change Language">
+            <span class="lang-icon">🌐</span>
+            <span id="lang-current-label">English</span>
+          </button>
+
+          <!-- Admin-Only Navigation Switcher -->
+          <nav id="admin-nav-tabs" class="nav-segmented admin-only" role="tablist">
+            <button id="tab-client" class="nav-tab active" role="tab" aria-selected="true">
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17 8 12 3 7 8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+              </svg>
+              <span data-i18n="tabClient">واجهة العميل</span>
+            </button>
+            <button id="tab-dashboard" class="nav-tab" role="tab" aria-selected="false">
+              <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect width="7" height="9" x="3" y="3" rx="1"/>
+                <rect width="7" height="5" x="14" y="3" rx="1"/>
+                <rect width="7" height="9" x="14" y="12" rx="1"/>
+                <rect width="7" height="5" x="3" y="16" rx="1"/>
+              </svg>
+              <span data-i18n="tabDashboard">الداشبورد (الإدارة)</span>
+              <span id="badge-total-files-nav" class="nav-counter">0</span>
+            </button>
+          </nav>
+
+          <!-- Admin-Only QR Code Button -->
+          <button id="btn-show-qr" class="btn btn-orange admin-only" title="عرض وطباعة باركود العميل">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="5" height="5" x="3" y="3" rx="1"/>
+              <rect width="5" height="5" x="16" y="3" rx="1"/>
+              <rect width="5" height="5" x="3" y="16" rx="1"/>
+              <path d="M21 16h-3a2 2 0 0 0-2 2v3"/>
+              <path d="M21 21v.01"/>
+              <path d="M12 7v3a2 2 0 0 1-2 2H7"/>
+              <path d="M3 12h.01"/>
+              <path d="M12 3h.01"/>
+              <path d="M12 16v.01"/>
+              <path d="M16 12h1"/>
+              <path d="M21 12v.01"/>
+              <path d="M12 21v-1"/>
+            </svg>
+            <span data-i18n="btnClientBarcode">باركود العميل</span>
+          </button>
+
+          <!-- Admin-Only Settings Button -->
+          <button id="btn-settings" class="btn btn-ghost admin-only" title="إعدادات التخزين و Supabase">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+
+        </div>
+      </div>
+    </header>
+
+    <!-- Admin-Only Storage Status Banner -->
+    <div id="storage-status-bar" class="status-banner local-mode admin-only">
+      <div class="banner-inner">
+        <span class="status-indicator"></span>
+        <span id="storage-status-text">نظام التخزين: وضع الاختبار التلقائي (جاهز للربط الفوري مع Supabase)</span>
+        <button id="btn-quick-config" class="btn-link">إعداد مفاتيح Supabase ⚡</button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="main-body">
+
+      <!-- ======================================================== -->
+      <!-- VIEW 1: CLIENT UPLOAD PORTAL (واجهة العميل النظيفة) -->
+      <!-- ======================================================== -->
+      <section id="view-client" class="view-panel active" aria-labelledby="tab-client">
+        <div class="container-narrow">
+          
+          <!-- Welcome & Device Info Card -->
+          <div class="glass-card client-header-card">
+            <div class="client-header-top">
+              <div class="device-badge-wrap">
+                <span class="badge-icon">📱</span>
+                <div>
+                  <div class="device-label" data-i18n="deviceLabel">معرف جهازك الموثق (بدون تسجيل دخول):</div>
+                  <div id="client-device-id" class="device-id-code">جهاز #...</div>
+                </div>
+              </div>
+              <div class="security-badge">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                </svg>
+                <span data-i18n="securityBadge">حفظ آمن ومؤقت (3 أيام)</span>
+              </div>
+            </div>
+
+            <!-- Optional Customer Note / Name / Policy Number -->
+            <div class="client-meta-inputs">
+              <div class="input-field-group">
+                <label for="input-client-name" class="input-label" data-i18n="clientNameLabel">اسم العميل / رقم الوثيقة أو التأمين (اختياري للتمييز):</label>
+                <div class="input-with-icon">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <input type="text" id="input-client-name" class="text-input" placeholder="مثال: أحمد محمد - تأمين سيارات #9021" dir="auto" data-i18n-placeholder="clientNamePlaceholder">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Drag and Drop Upload Zone -->
+          <div class="glass-card upload-zone-card">
+            <div id="drop-area" class="drop-zone" role="button" tabindex="0">
+              <input type="file" id="file-input-multiple" multiple accept="image/*,application/pdf,.doc,.docx" class="hidden-input">
+              <input type="file" id="file-input-camera" accept="image/*" capture="environment" class="hidden-input">
+              
+              <div class="drop-illustration">
+                <div class="icon-circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="cloud-up-icon">
+                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+                    <path d="M12 12v9"/>
+                    <path d="m8 16 4-4 4 4"/>
+                  </svg>
+                </div>
+              </div>
+
+              <h2 class="drop-title" dir="auto" data-i18n="dropTitle">اسحب وأفلت الملفات هنا، أو اضغط للاختيار</h2>
+              <p class="drop-subtitle" dir="auto" data-i18n="dropSubtitle">ندعم صور التأمين والبطاقات (JPG, PNG) والمستندات (PDF)</p>
+
+              <!-- Fast Action Buttons for Mobile/Desktop -->
+              <div class="upload-quick-actions">
+                <button type="button" id="btn-browse-files" class="btn btn-primary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                  </svg>
+                  <span data-i18n="btnBrowseFiles">اختيار ملفات من الجهاز</span>
+                </button>
+                <button type="button" id="btn-trigger-camera" class="btn btn-secondary">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/>
+                    <circle cx="12" cy="13" r="3"/>
+                  </svg>
+                  <span data-i18n="btnTriggerCamera">تصوير مباشر بالكاميرا</span>
+                </button>
+              </div>
+
+              <div class="drop-features">
+                <span class="feature-tag" data-i18n="tagInstant">⚡ رفع فوري ومباشر</span>
+                <span class="feature-tag" data-i18n="tagEncrypted">🔒 مشفر وخاص</span>
+                <span class="feature-tag" data-i18n="tagAutoExpire">⏳ حذف آلي بعد 3 أيام</span>
+              </div>
+            </div>
+
+            <!-- Upload Progress Bar Area -->
+            <div id="upload-progress-container" class="upload-progress-box hidden">
+              <div class="progress-info">
+                <span id="progress-filename" class="progress-title" dir="auto" data-i18n="uploading">جاري رفع الملفات...</span>
+                <span id="progress-percent" class="progress-ratio">0%</span>
+              </div>
+              <div class="progress-bar-bg">
+                <div id="progress-bar-fill" class="progress-bar-fill" style="width: 0%;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Client Uploaded Files in this Session -->
+          <div class="client-files-section">
+            <div class="section-heading">
+              <div class="heading-title-group">
+                <h3 class="section-title" data-i18n="clientSectionTitle">المستندات التي قمت برفعها في هذه الجلسة</h3>
+                <span id="client-files-count" class="badge-count">0 مستندات</span>
+              </div>
+              <p class="section-desc" data-i18n="clientSectionDesc">هذه الملفات محفوظة حالياً في السيرفر وتُحذف تلقائياً بعد 3 أيام من تاريخ رفعها.</p>
+            </div>
+
+            <div id="client-files-list" class="files-grid">
+              <!-- Empty State -->
+              <div class="empty-state-card">
+                <div class="empty-icon-wrap">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="12" y1="18" x2="12" y2="12"/>
+                    <line x1="9" y1="15" x2="15" y2="15"/>
+                  </svg>
+                </div>
+                <h4 data-i18n="emptyClientTitle">لم تقم برفع أي ملفات حتى الآن</h4>
+                <p data-i18n="emptyClientDesc">قم بسحب ملفات التأمين أو الهوية أو الضغط على زر الاختيار أعلاه لرفعها فوراً.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ======================================================== -->
+      <!-- VIEW 2: ADMIN DASHBOARD (خاص بالإدارة فقط) -->
+      <!-- ======================================================== -->
+      <section id="view-dashboard" class="view-panel admin-only" aria-labelledby="tab-dashboard">
+        <div class="container-wide">
+          
+          <!-- Top Stats Overview Cards -->
+          <div class="stats-grid">
+            
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-blue-light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label" data-i18n="statTotalFilesLabel">إجمالي الملفات (آخر 3 أيام)</span>
+                <span id="stat-total-files" class="stat-value">0</span>
+                <span class="stat-hint" data-i18n="statTotalFilesHint">الملفات النشطة المرفوعة</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-orange-light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect width="14" height="20" x="5" y="2" rx="2" ry="2"/>
+                  <line x1="12" y1="18" x2="12.01" y2="18"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label" data-i18n="statDevicesLabel">الأجهزة والعملاء المتصلين</span>
+                <span id="stat-total-devices" class="stat-value">0</span>
+                <span class="stat-hint" data-i18n="statDevicesHint">معرّفات أجهزة فريدة بدون لوجن</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-cyan-light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label" data-i18n="statSizeLabel">إجمالي حجم البيانات</span>
+                <span id="stat-total-size" class="stat-value">0 ميجابايت</span>
+                <span class="stat-hint" data-i18n="statSizeHint">مساحة التخزين المستهلكة</span>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon-wrap bg-red-light">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="stat-content">
+                <span class="stat-label" data-i18n="statExpiringLabel">تنتهي خلال 24 ساعة</span>
+                <span id="stat-expiring-soon" class="stat-value">0</span>
+                <span class="stat-hint" data-i18n="statExpiringHint">سيتم حذفها تلقائياً قريباً</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Filter, Search and Actions Bar -->
+          <div class="glass-card table-controls-card">
+            <div class="controls-row">
+              
+              <!-- Search Input -->
+              <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" id="admin-search-input" class="search-input" placeholder="بحث باسم الملف، اسم العميل، أو معرف الجهاز..." dir="auto" data-i18n-placeholder="searchPlaceholder">
+              </div>
+
+              <!-- Type Filter -->
+              <div class="filter-group">
+                <select id="admin-filter-type" class="select-input">
+                  <option value="all" data-i18n="filterAllTypes">جميع أنواع الملفات</option>
+                  <option value="image" data-i18n="filterImagesOnly">الصور فقط (JPG, PNG)</option>
+                  <option value="pdf" data-i18n="filterPdfOnly">المستندات (PDF)</option>
+                </select>
+
+                <select id="admin-sort-by" class="select-input">
+                  <option value="newest" data-i18n="sortNewest">الأحدث رفعاً</option>
+                  <option value="oldest" data-i18n="sortOldest">الأقدم رفعاً</option>
+                  <option value="expiry" data-i18n="sortExpiry">الأقرب للحذف التلقائي</option>
+                </select>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="action-buttons-group">
+                <button id="btn-refresh-dashboard" class="btn btn-outline" title="تحديث البيانات">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="23 4 23 10 17 10"/>
+                    <polyline points="1 20 1 14 7 14"/>
+                    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                  </svg>
+                  <span data-i18n="btnRefresh">تحديث</span>
+                </button>
+                <button id="btn-clean-expired" class="btn btn-danger-outline" title="تنظيف الملفات المنتهية فوراً">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                  </svg>
+                  <span data-i18n="btnCleanExpired">حذف المنتهية (+3 أيام)</span>
+                </button>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Files Table / Grid Container -->
+          <div class="glass-card files-table-card">
+            <div class="table-header-title">
+              <div class="table-title-group">
+                <h3 data-i18n="tableHeaderTitle">سجل المستندات المرفوعة</h3>
+                <span id="filtered-files-count" class="badge-tag">0 نتائج</span>
+              </div>
+              <div class="ttl-notice">
+                <span class="ttl-pulse"></span>
+                <span data-i18n="ttlNotice">النظام يحذف أي ملف يمر عليه 3 أيام (72 ساعة) تلقائياً</span>
+              </div>
+            </div>
+
+            <!-- Table Responsive Wrapper -->
+            <div class="table-responsive">
+              <table class="dashboard-table">
+                <thead>
+                  <tr>
+                    <th data-i18n="thPreview">معاينة الملف</th>
+                    <th data-i18n="thFileName">اسم المستند والنوع</th>
+                    <th data-i18n="thDevice">معرّف الجهاز والعميل</th>
+                    <th data-i18n="thUploadTime">تاريخ ووقت الرفع</th>
+                    <th data-i18n="thRemaining">الوقت المتبقي للحذف</th>
+                    <th data-i18n="thFileSize">حجم الملف</th>
+                    <th data-i18n="thActions">الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-table-body">
+                  <!-- Populated by JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Empty State for Admin -->
+            <div id="admin-empty-state" class="empty-state-card hidden">
+              <div class="empty-icon-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                </svg>
+              </div>
+              <h4 data-i18n="adminEmptyTitle">لا توجد ملفات مرفوعة حالياً مطابقة للبحث</h4>
+              <p data-i18n="adminEmptyDesc">عندما يقوم العملاء بمسح الباركود ورفع المستندات، ستظهر جميعها هنا مع العداد التنازلي.</p>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+      <div class="footer-inner">
+        <span data-i18n="footerCopy">سحاب دوكس &copy; 2026 - نظام الرفع السريع لشركات التأمين والخدمات</span>
+        <span class="divider">•</span>
+        <span data-i18n="footerTtl">صلاحية المستندات: 3 أيام (72 ساعة)</span>
+        <span class="divider admin-only">•</span>
+        <a href="#database-schema" id="btn-show-schema-link" class="footer-link admin-only" data-i18n="footerSqlLink">كود إعداد Supabase SQL ⚡</a>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 1: QR CODE STAND & PRINT MODAL (ستاند الباركود للعملاء) -->
+  <!-- ======================================================== -->
+  <div id="modal-qr" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-dialog qr-modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="qrModalTitle">باركود استقبال العملاء (QR Code)</h3>
+        <button id="btn-close-qr-modal" class="modal-close-btn" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <!-- Printable QR Tent Card -->
+        <div id="printable-qr-stand" class="qr-stand-card">
+          <div class="qr-stand-header">
+            <div class="qr-stand-logo">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0B192C" stroke-width="2.5" width="28" height="28">
+                <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/>
+                <polyline points="12 11 12 15"/>
+                <polyline points="9 13 12 10 15 13"/>
+              </svg>
+              <span data-i18n="qrStandService">خدمة العملاء الذكية</span>
+            </div>
+            <h2 class="qr-stand-title" dir="auto" data-i18n="qrStandTitle">امسح الباركود لرفع مستنداتك وأوراق التأمين</h2>
+            <p class="qr-stand-subtitle" dir="auto" data-i18n="qrStandSubtitle">لا حاجة لتسجيل الدخول • مباشر وآمن من هاتفك</p>
+          </div>
+
+          <!-- QR Canvas Box -->
+          <div class="qr-canvas-wrapper">
+            <div id="qr-code-canvas-container"></div>
+            <div class="qr-frame-corners"></div>
+          </div>
+
+          <!-- Instructions steps for customer -->
+          <div class="qr-instructions">
+            <div class="qr-step">
+              <span class="step-num">1</span>
+              <span data-i18n="qrStep1">وجّه كاميرا هاتفك نحو الباركود وافتح الرابط</span>
+            </div>
+            <div class="qr-step">
+              <span class="step-num">2</span>
+              <span data-i18n="qrStep2">التقط صورة للوثيقة أو ارفع ملفات الـ PDF</span>
+            </div>
+            <div class="qr-step">
+              <span class="step-num">3</span>
+              <span data-i18n="qrStep3">تصلنا المستندات فوراً وتُحفظ بأمان لمدة 3 أيام</span>
+            </div>
+          </div>
+
+          <div class="qr-stand-footer">
+            <span class="qr-url-text" id="qr-target-url-label">https://...</span>
+          </div>
+        </div>
+
+        <!-- Controls below printable card -->
+        <div class="qr-modal-actions">
+          <button id="btn-print-qr" class="btn btn-orange">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect width="12" height="8" x="6" y="14"/>
+            </svg>
+            <span data-i18n="btnPrintStand">طباعة ستاند الاستقبال</span>
+          </button>
+          <button id="btn-download-qr" class="btn btn-primary">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span data-i18n="btnDownloadQr">تحميل الـ QR كصورة</span>
+          </button>
+          <button id="btn-copy-url" class="btn btn-outline">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+              <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+            </svg>
+            <span id="copy-url-btn-text" data-i18n="btnCopyUrl">نسخ رابط العميل</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 2: FILE PREVIEW MODAL (LIGHTBOX / PDF VIEWER) -->
+  <!-- ======================================================== -->
+  <div id="modal-preview" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-dialog preview-modal-dialog">
+      <div class="modal-header">
+        <div class="preview-title-wrap">
+          <h3 id="preview-filename" class="modal-title" dir="auto" data-i18n="previewTitle">معاينة الملف</h3>
+          <span id="preview-filemeta" class="badge-tag">...</span>
+        </div>
+        <button id="btn-close-preview" class="modal-close-btn" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="modal-body preview-modal-body">
+        <div id="preview-content-box" class="preview-content-box">
+          <!-- Loaded dynamically -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <a id="btn-download-preview" href="#" download class="btn btn-primary">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          <span data-i18n="btnDownloadFile">تحميل الملف إلى جهازك</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL 3: SUPABASE SETTINGS & SQL SCHEMA (الإعدادات وكود SQL) -->
+  <!-- ======================================================== -->
+  <div id="modal-settings" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-dialog settings-modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="settingsModalTitle">إعدادات ربط Supabase والتخزين السحابي</h3>
+        <button id="btn-close-settings" class="modal-close-btn" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="modal-body">
+        
+        <div class="settings-tabs">
+          <button id="tab-sub-keys" class="sub-tab active" data-i18n="tabApiKeys">مفاتيح الربط (API Keys)</button>
+          <button id="tab-sub-sql" class="sub-tab" data-i18n="tabSqlCode">كود SQL الجاهز (3 أيام TTL)</button>
+        </div>
+
+        <!-- Sub Panel 1: API Keys -->
+        <div id="panel-sub-keys" class="sub-panel active">
+          <p class="settings-desc" data-i18n="settingsDesc">
+            التطبيق يعمل حالياً بوضع التخزين المؤقت المحلي. لربطه بقاعدة بيانات <strong>Supabase</strong> الخاصة بك وحفظ الملفات في Supabase Storage، ضع بيانات مشروعك هنا:
+          </p>
+
+          <div class="form-group">
+            <label for="input-supabase-url" class="input-label">Project URL (رابط المشروع):</label>
+            <input type="text" id="input-supabase-url" class="text-input" placeholder="https://xxxxxxxx.supabase.co" dir="ltr">
+          </div>
+
+          <div class="form-group">
+            <label for="input-supabase-anon" class="input-label">Anon Public Key (المفتاح العام):</label>
+            <input type="password" id="input-supabase-anon" class="text-input" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6..." dir="ltr">
+          </div>
+
+          <div class="form-group">
+            <label for="input-supabase-bucket" class="input-label">اسم الـ Storage Bucket:</label>
+            <input type="text" id="input-supabase-bucket" class="text-input" value="client-documents" dir="ltr">
+          </div>
+
+          <div class="settings-actions">
+            <button id="btn-save-supabase-config" class="btn btn-orange" data-i18n="btnSaveConfig">حفظ وتفعيل الربط</button>
+            <button id="btn-reset-to-demo" class="btn btn-outline" data-i18n="btnResetDemo">الرجوع لوضع التجربة المحلي</button>
+          </div>
+        </div>
+
+        <!-- Sub Panel 2: SQL Script -->
+        <div id="panel-sub-sql" class="sub-panel">
+          <p class="settings-desc" data-i18n="sqlDesc">
+            انسخ هذا الكود وضعه في <strong>SQL Editor</strong> داخل لوحة تحكم Supabase الخاصة بك لإنشاء الجدول، التخزين، والحذف الآلي بعد 3 أيام:
+          </p>
+
+          <div class="code-box-wrapper">
+            <button id="btn-copy-sql" class="btn-copy-code" data-i18n="btnCopyCode">نسخ الكود</button>
+            <pre class="code-pre"><code id="sql-schema-code">-- 1. إنشاء جدول الملفات مع عمود وقت الرفع
+CREATE TABLE IF NOT EXISTS public.uploaded_files (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id TEXT NOT NULL,
+    device_id TEXT NOT NULL,
+    client_name TEXT,
+    file_name TEXT NOT NULL,
+    file_size BIGINT NOT NULL,
+    mime_type TEXT NOT NULL,
+    storage_path TEXT NOT NULL,
+    public_url TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '3 days')
+);
+
+-- 2. تفعيل صلاحيات الرفع والقراءة للجميع (بدون لوجن)
+ALTER TABLE public.uploaded_files ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "السماح للجميع بالرفع" 
+ON public.uploaded_files FOR INSERT 
+WITH CHECK (true);
+
+CREATE POLICY "السماح بعرض ملفات آخر 3 أيام" 
+ON public.uploaded_files FOR SELECT 
+USING (created_at >= NOW() - INTERVAL '3 days');
+
+-- 3. دالة الحذف التلقائي للملفات المنتهية بعد 3 أيام
+CREATE OR REPLACE FUNCTION delete_expired_files()
+RETURNS void AS $$
+BEGIN
+    DELETE FROM public.uploaded_files
+    WHERE created_at &lt; NOW() - INTERVAL '3 days';
+END;
+$$ LANGUAGE plpgsql;
+
+-- 4. إعداد Storage Bucket في Supabase:
+-- قم بإنشاء Bucket باسم 'client-documents' واجعله Public.
+</code></pre>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Main JavaScript Module -->
+  <script type="module" src="./main.js"></script>
+</body>
+</html>
