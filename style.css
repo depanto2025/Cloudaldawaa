@@ -1340,6 +1340,34 @@ body {
   height: 15px;
 }
 
+.btn-session-print {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(139, 92, 246, 0.18);
+  color: #DDD6FE;
+  border: 1px solid rgba(167, 139, 250, 0.35);
+}
+
+.btn-session-print:hover {
+  background: #7C3AED;
+  color: #FFFFFF;
+  border-color: #7C3AED;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.4);
+}
+
+.btn-session-print svg {
+  width: 15px;
+  height: 15px;
+}
+
 /* ==========================================================================
    LATEST CLIENT SESSION - GRADUATED LIGHT GREEN HIGHLIGHT (أحدث عميل)
    ========================================================================== */
@@ -1480,6 +1508,20 @@ body {
   border-color: #DC2626;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
+}
+
+.btn-action-print {
+  background: rgba(139, 92, 246, 0.15);
+  color: #C084FC;
+  border-color: rgba(192, 132, 252, 0.3);
+}
+
+.btn-action-print:hover {
+  background: #7C3AED;
+  color: #FFFFFF;
+  border-color: #7C3AED;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
 }
 
 /* Spinner Animation & Interactive Download States */
@@ -2735,6 +2777,31 @@ html[data-theme="light"] .btn-session-download-separate:hover {
   background: #DBEAFE;
   border-color: #3B82F6;
   color: #1E40AF;
+}
+
+html[data-theme="light"] .btn-action-print {
+  background: #F5F3FF;
+  color: #7C3AED;
+  border-color: #DDD6FE;
+}
+
+html[data-theme="light"] .btn-action-print:hover {
+  background: #7C3AED;
+  color: #FFFFFF;
+  border-color: #7C3AED;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+}
+
+html[data-theme="light"] .btn-session-print {
+  background: #F5F3FF;
+  color: #6D28D9;
+  border: 1px solid #DDD6FE;
+}
+
+html[data-theme="light"] .btn-session-print:hover {
+  background: #EDE9FE;
+  border-color: #8B5CF6;
+  color: #5B21B6;
 }
 
 /* Latest Client Session in Light Mode - Graduated fresh light mint/emerald green */

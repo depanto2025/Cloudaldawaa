@@ -97,6 +97,9 @@ const TRANSLATIONS = {
     btnDownloadSeparate: 'تنزيل منفصل',
     btnDownloadSingle: 'تحميل الملف',
     latestClientBadge: 'أحدث عميل ⚡',
+    btnPrint: 'طباعة',
+    btnPrintFile: 'طباعة هذا المستند',
+    btnPrintAll: 'طباعة كل الملفات',
     clientSessionLabel: 'جلسة رفع للعميل',
     // PIN Modal
     pinModalTitle: 'التحقق من رقم الحماية 🔒',
@@ -198,6 +201,9 @@ const TRANSLATIONS = {
     btnDownloadSeparate: 'Download Separately',
     btnDownloadSingle: 'Download File',
     latestClientBadge: 'Latest Client ⚡',
+    btnPrint: 'Print',
+    btnPrintFile: 'Print Document',
+    btnPrintAll: 'Print All Documents',
     clientSessionLabel: 'Client Upload Session',
     // PIN Modal
     pinModalTitle: 'Security PIN Verification 🔒',
@@ -281,6 +287,7 @@ const DOM = {
   previewFilemeta: document.getElementById('preview-filemeta'),
   previewContentBox: document.getElementById('preview-content-box'),
   btnDownloadPreview: document.getElementById('btn-download-preview'),
+  btnPrintPreview: document.getElementById('btn-print-preview'),
 
   // PIN Verification Modal
   modalPin: document.getElementById('modal-pin'),
@@ -316,6 +323,7 @@ const DOM = {
 let currentClientFiles = [];
 let allAdminFiles = [];
 let qrDataUrl = '';
+let currentPreviewFile = null;
 
 // Helper: Translate text
 function t(key) {
@@ -1079,6 +1087,244 @@ async function downloadSessionFilesSeparately(files, clientLabel, triggerBtn) {
 // Backward compatibility alias:
 const downloadSessionFiles = downloadSessionAsZip;
 
+// Helper: Print a single file in a clean printable tab with automatic print dialog
+function printSingleFile(file) {
+  if (!file || !file.url) return;
+  const isImage = file.mimeType?.startsWith('image/');
+  const isPdf = file.mimeType?.includes('pdf');
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) {
+    alert(currentLang === 'ar' ? 'يرجى السماح بالنوافذ المنبثقة لفتح شاشة الطباعة' : 'Please allow popups to enable printing');
+    return;
+  }
+
+  const clientInfo = file.clientName ? `👤 ${file.clientName}` : (currentLang === 'ar' ? 'بدون اسم' : 'No Name');
+  const dateStr = formatDateTime(file.createdAt);
+
+  if (isImage) {
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html dir="${currentLang === 'ar' ? 'rtl' : 'ltr'}">
+      <head>
+        <meta charset="UTF-8">
+        <title>${file.fileName} - Print</title>
+        <style>
+          @page { size: A4 portrait; margin: 10mm; }
+          * { box-sizing: border-box; }
+          body {
+            margin: 0;
+            padding: 16px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif;
+            background: #ffffff;
+            color: #0F172A;
+          }
+          .print-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #E2E8F0;
+            padding-bottom: 10px;
+            margin-bottom: 16px;
+            font-size: 13px;
+          }
+          .print-brand { font-weight: 800; color: #EA580C; font-size: 15px; }
+          .print-meta { color: #64748B; font-size: 12px; }
+          .img-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+          }
+          img {
+            max-width: 100%;
+            max-height: 85vh;
+            object-fit: contain;
+            border: 1px solid #CBD5E1;
+            border-radius: 6px;
+          }
+          @media print {
+            body { padding: 0; }
+            img { border: none; max-height: 92vh; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-header">
+          <div>
+            <span class="print-brand">مخزن المستندات | DocCloud</span>
+            <span style="margin: 0 8px; color:#CBD5E1;">|</span>
+            <strong>${file.fileName}</strong>
+          </div>
+          <div class="print-meta">${clientInfo} • ${file.deviceId} • ${dateStr}</div>
+        </div>
+        <div class="img-container">
+          <img src="${file.url}" alt="${file.fileName}" onload="setTimeout(() => { window.focus(); window.print(); }, 400);" />
+        </div>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  } else if (isPdf) {
+    printWin.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${file.fileName} - Print</title>
+        <style>
+          body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #fff; }
+          iframe { width: 100%; height: 100%; border: none; }
+        </style>
+      </head>
+      <body>
+        <iframe src="${file.url}" onload="setTimeout(() => { try { this.contentWindow.focus(); this.contentWindow.print(); } catch(e) { window.print(); } }, 600);"></iframe>
+      </body>
+      </html>
+    `);
+    printWin.document.close();
+  } else {
+    printWin.location.href = file.url;
+  }
+}
+
+// Helper: Print all files of a client session in a unified printable multi-page sheet
+function printSessionFiles(files, clientLabel) {
+  if (!files || files.length === 0) return;
+
+  const printWin = window.open('', '_blank');
+  if (!printWin) {
+    alert(currentLang === 'ar' ? 'يرجى السماح بالنوافذ المنبثقة لفتح شاشة الطباعة' : 'Please allow popups to enable printing');
+    return;
+  }
+
+  const label = clientLabel || (currentLang === 'ar' ? 'العميل' : 'Client');
+  const sample = files[0];
+  const dateStr = formatDateTime(sample.createdAt);
+  const deviceStr = sample.deviceId || '';
+
+  const pagesHtml = files.map((file, idx) => {
+    const isImage = file.mimeType?.startsWith('image/');
+    return `
+      <div class="doc-page">
+        <div class="page-header">
+          <div class="page-title">
+            <span class="brand-name">DocCloud</span>
+            <span style="margin:0 6px; color:#cbd5e1;">•</span>
+            <strong>${file.fileName}</strong>
+            <span class="badge-num">${idx + 1} / ${files.length}</span>
+          </div>
+          <div class="page-meta">${label} • ${deviceStr} • ${dateStr}</div>
+        </div>
+        <div class="doc-body">
+          ${isImage ? `
+            <img class="print-img" src="${file.url}" alt="${file.fileName}" />
+          ` : `
+            <div class="pdf-box">
+              <iframe src="${file.url}" style="width:100%; height:82vh; border:1px solid #ccc; border-radius:6px;"></iframe>
+            </div>
+          `}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  printWin.document.write(`
+    <!DOCTYPE html>
+    <html dir="${currentLang === 'ar' ? 'rtl' : 'ltr'}">
+    <head>
+      <meta charset="UTF-8">
+      <title>طباعة مستندات - ${label}</title>
+      <style>
+        @page { size: A4 portrait; margin: 10mm; }
+        * { box-sizing: border-box; }
+        body {
+          margin: 0;
+          padding: 16px;
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Cairo", sans-serif;
+          background: #ffffff;
+          color: #0F172A;
+        }
+        .doc-page {
+          margin-bottom: 24px;
+          page-break-after: always;
+          display: flex;
+          flex-direction: column;
+        }
+        .doc-page:last-child { page-break-after: auto; margin-bottom: 0; }
+        .page-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          border-bottom: 2px solid #E2E8F0;
+          padding-bottom: 8px;
+          margin-bottom: 14px;
+          font-size: 13px;
+        }
+        .brand-name { font-weight: 800; color: #EA580C; }
+        .badge-num {
+          background: #EFF6FF;
+          color: #1D4ED8;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 11px;
+          font-weight: 700;
+          margin-inline-start: 8px;
+        }
+        .page-meta { color: #64748B; font-size: 12px; }
+        .doc-body {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 80vh;
+        }
+        .print-img {
+          max-width: 100%;
+          max-height: 84vh;
+          object-fit: contain;
+          border: 1px solid #E2E8F0;
+          border-radius: 6px;
+        }
+        .pdf-box { width: 100%; height: 82vh; }
+        @media print {
+          body { padding: 0; }
+          .doc-page { margin-bottom: 0; }
+          .print-img { border: none; max-height: 90vh; }
+        }
+      </style>
+      <script>
+        let loaded = 0;
+        const total = ${files.length};
+        function checkReady() {
+          loaded++;
+          if (loaded >= total) {
+            setTimeout(() => { window.focus(); window.print(); }, 500);
+          }
+        }
+      </script>
+    </head>
+    <body>
+      ${pagesHtml}
+      <script>
+        const imgs = document.querySelectorAll('.print-img');
+        if (imgs.length === 0) {
+          setTimeout(() => { window.focus(); window.print(); }, 800);
+        } else {
+          imgs.forEach(img => {
+            if (img.complete) checkReady();
+            else {
+              img.onload = checkReady;
+              img.onerror = checkReady;
+            }
+          });
+        }
+      </script>
+    </body>
+    </html>
+  `);
+  printWin.document.close();
+}
+
 // Helper: Extract Date Key (YYYY-MM-DD)
 function getDateKey(timestamp) {
   const d = new Date(timestamp);
@@ -1351,6 +1597,14 @@ function renderAdminFilesTable() {
                   </svg>
                   <span>${t('btnDownloadSingle')} (1)</span>
                 </button>
+                <button class="btn btn-session-print" title="${t('btnPrintFile')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>${t('btnPrint')}</span>
+                </button>
               ` : `
                 <button class="btn btn-session-download-zip" title="${t('btnDownloadZip')}">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1369,13 +1623,21 @@ function renderAdminFilesTable() {
                   </svg>
                   <span>${t('btnDownloadSeparate')}</span>
                 </button>
+                <button class="btn btn-session-print" title="${t('btnPrintAll')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                  </svg>
+                  <span>${t('btnPrintAll')} (${session.files.length})</span>
+                </button>
               `}
             </div>
           </div>
         </td>
       `;
 
-      // Download events for session
+      // Download and print events for session
       if (session.files.length === 1) {
         const singleBtn = sessionTr.querySelector('.btn-session-download-single');
         if (singleBtn) {
@@ -1396,6 +1658,13 @@ function renderAdminFilesTable() {
             downloadSessionFilesSeparately(session.files, clientDisplayName, e.currentTarget);
           });
         }
+      }
+
+      const sessionPrintBtn = sessionTr.querySelector('.btn-session-print');
+      if (sessionPrintBtn) {
+        sessionPrintBtn.addEventListener('click', () => {
+          printSessionFiles(session.files, clientDisplayName);
+        });
       }
 
       DOM.adminTableBody.appendChild(sessionTr);
@@ -1445,6 +1714,13 @@ function renderAdminFilesTable() {
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
               </button>
+              <button class="btn-action-icon btn-action-print" title="${t('btnPrintFile')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                  <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+              </button>
               <a href="${getDirectDownloadUrl(file)}" download="${file.fileName}" class="btn-action-icon btn-action-download" title="${t('btnDownloadFile')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -1467,6 +1743,7 @@ function renderAdminFilesTable() {
         // Row Events
         fileTr.querySelector('.table-thumb-cell').addEventListener('click', () => openPreviewModal(file));
         fileTr.querySelector('.btn-action-preview').addEventListener('click', () => openPreviewModal(file));
+        fileTr.querySelector('.btn-action-print').addEventListener('click', () => printSingleFile(file));
         fileTr.querySelector('.btn-action-download').addEventListener('click', (e) => {
           const btn = e.currentTarget;
           if (btn.classList.contains('is-downloading')) {
@@ -1540,6 +1817,7 @@ async function setupQrCode() {
 // File Preview Modal (Lightbox / PDF)
 // ==========================================================================
 function openPreviewModal(file) {
+  currentPreviewFile = file;
   DOM.previewFilename.textContent = file.fileName;
   DOM.previewFilemeta.textContent = `${formatFileSize(file.fileSize)} • ${file.mimeType}`;
   DOM.btnDownloadPreview.href = getDirectDownloadUrl(file);
@@ -1678,6 +1956,13 @@ function attachEventListeners() {
 
   // Preview Modal Close
   DOM.btnClosePreview.addEventListener('click', () => DOM.modalPreview.classList.add('hidden'));
+  if (DOM.btnPrintPreview) {
+    DOM.btnPrintPreview.addEventListener('click', () => {
+      if (currentPreviewFile) {
+        printSingleFile(currentPreviewFile);
+      }
+    });
+  }
 
   // Settings Modal
   const openSettings = () => {
