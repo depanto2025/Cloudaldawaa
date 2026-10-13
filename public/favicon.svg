@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="cloudGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#EA580C"/>
+    </linearGradient>
+  </defs>
+  <!-- Background with smooth rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#cloudGrad)"/>
+  
+  <!-- Cloud with Upload Arrow -->
+  <g transform="translate(64, 64) scale(16)" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z" fill="rgba(255,255,255,0.18)"/>
+    <polyline points="12 11 12 15"/>
+    <polyline points="9 13 12 10 15 13"/>
+  </g>
+</svg>

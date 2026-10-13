@@ -87,6 +87,12 @@ const TRANSLATIONS = {
     uploadSuccess: 'تم رفع المستندات بنجاح وحفظها بأمان!',
     copied: 'تم النسخ بنجاح! ✓',
     expiredText: 'منتهي الصلاحية',
+    // Date & Session Grouping
+    today: 'اليوم',
+    yesterday: 'أمس',
+    dateGroupFilesCount: 'مستندات',
+    btnDownloadAll: 'تحميل كل ملفات العميل',
+    clientSessionLabel: 'جلسة رفع للعميل',
     // PIN Modal
     pinModalTitle: 'التحقق من رقم الحماية 🔒',
     pinModalDesc: 'هذا القسم محمي برقم حماية. أدخل الرمز للمتابعة إلى إعدادات Supabase:',
@@ -178,6 +184,12 @@ const TRANSLATIONS = {
     uploadSuccess: 'Documents uploaded successfully and saved securely!',
     copied: 'Copied to clipboard! ✓',
     expiredText: 'Expired',
+    // Date & Session Grouping
+    today: 'Today',
+    yesterday: 'Yesterday',
+    dateGroupFilesCount: 'documents',
+    btnDownloadAll: 'Download All Files',
+    clientSessionLabel: 'Client Upload Session',
     // PIN Modal
     pinModalTitle: 'Security PIN Verification 🔒',
     pinModalDesc: 'This section is protected. Enter PIN code to access Supabase settings:',
@@ -711,6 +723,167 @@ async function refreshAdminDashboard() {
   renderAdminFilesTable();
 }
 
+// Helper: Download a single file safely using Blob or direct link
+async function downloadSingleFile(file) {
+  try {
+    const response = await fetch(file.url);
+    if (!response.ok) throw new Error('Fetch failed');
+    const blob = await response.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = file.fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+  } catch {
+    const a = document.createElement('a');
+    a.href = file.url;
+    a.download = file.fileName;
+    a.target = '_blank';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }
+}
+
+// Helper: Download all files for a specific client session
+async function downloadSessionFiles(files, clientLabel) {
+  if (!files || files.length === 0) return;
+  const label = clientLabel || (currentLang === 'ar' ? 'العميل' : 'Client');
+  showToast(
+    currentLang === 'ar'
+      ? `جاري تحميل ${files.length} ملفات لـ (${label})...`
+      : `Downloading ${files.length} files for (${label})...`,
+    'info'
+  );
+
+  for (let i = 0; i < files.length; i++) {
+    await downloadSingleFile(files[i]);
+    if (i < files.length - 1) {
+      await new Promise(r => setTimeout(r, 350));
+    }
+  }
+}
+
+// Helper: Extract Date Key (YYYY-MM-DD)
+function getDateKey(timestamp) {
+  const d = new Date(timestamp);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Helper: Format Date Group Title (اليوم / أمس / التاريخ الكامل)
+function formatDateGroupTitle(dateKey, sampleTimestamp) {
+  const now = new Date();
+  const todayKey = getDateKey(now.getTime());
+  const yesterdayKey = getDateKey(now.getTime() - 24 * 60 * 60 * 1000);
+  const date = new Date(sampleTimestamp);
+  const locale = currentLang === 'ar' ? 'ar-EG' : 'en-US';
+
+  const fullDateStr = date.toLocaleDateString(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  if (dateKey === todayKey) {
+    return `${t('today')} • ${fullDateStr}`;
+  }
+  if (dateKey === yesterdayKey) {
+    return `${t('yesterday')} • ${fullDateStr}`;
+  }
+  return fullDateStr;
+}
+
+// Helper: Format Time for Session Header (e.g. 10:16 PM)
+function formatSessionTime(timestamp) {
+  const date = new Date(timestamp);
+  const locale = currentLang === 'ar' ? 'ar-EG' : 'en-US';
+  return date.toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// Helper: Format Session File Breakdown Summary
+function formatSessionSummary(files) {
+  const count = files.length;
+  const imagesCount = files.filter(f => f.mimeType.startsWith('image/')).length;
+  const pdfCount = files.filter(f => f.mimeType.includes('pdf')).length;
+  const otherCount = count - (imagesCount + pdfCount);
+
+  if (currentLang === 'ar') {
+    const parts = [];
+    if (imagesCount > 0) parts.push(`${imagesCount} صورة`);
+    if (pdfCount > 0) parts.push(`${pdfCount} PDF`);
+    if (otherCount > 0) parts.push(`${otherCount} ملف آخر`);
+
+    const totalLabel = count === 1 ? 'مستند واحد' : count === 2 ? 'مستندان' : `${count} مستندات`;
+    if (parts.length === 1 && (imagesCount === count || pdfCount === count)) {
+      return `${totalLabel} (${parts[0]})`;
+    }
+    return `${totalLabel} (${parts.join(' + ')})`;
+  } else {
+    const parts = [];
+    if (imagesCount > 0) parts.push(`${imagesCount} Image${imagesCount > 1 ? 's' : ''}`);
+    if (pdfCount > 0) parts.push(`${pdfCount} PDF${pdfCount > 1 ? 's' : ''}`);
+    if (otherCount > 0) parts.push(`${otherCount} Other`);
+
+    const totalLabel = count === 1 ? '1 Document' : `${count} Documents`;
+    if (parts.length === 1 && (imagesCount === count || pdfCount === count)) {
+      return `${totalLabel} (${parts[0]})`;
+    }
+    return `${totalLabel} (${parts.join(' + ')})`;
+  }
+}
+
+// Helper: Cluster files within a date into client visits/sessions
+function clusterIntoClientSessions(filesInDate) {
+  const sessions = [];
+  const CLUSTER_WINDOW_MS = 25 * 60 * 1000; // 25-minute window for same customer visit
+
+  filesInDate.forEach((file) => {
+    const matchingSession = sessions.find((s) => {
+      const isSameDevice = s.deviceId === file.deviceId;
+      const isSameClientName = (!s.clientName && !file.clientName) || (s.clientName === file.clientName);
+
+      if (s.sessionId && file.sessionId && s.sessionId === file.sessionId && isSameDevice) {
+        return true;
+      }
+
+      const timeDiff = Math.abs(s.latestTimestamp - file.createdAt);
+      return isSameDevice && isSameClientName && timeDiff <= CLUSTER_WINDOW_MS;
+    });
+
+    if (matchingSession) {
+      matchingSession.files.push(file);
+      if (file.createdAt > matchingSession.latestTimestamp) {
+        matchingSession.latestTimestamp = file.createdAt;
+      }
+      if (file.createdAt < matchingSession.earliestTimestamp) {
+        matchingSession.earliestTimestamp = file.createdAt;
+      }
+    } else {
+      sessions.push({
+        id: `sess_${file.deviceId}_${file.createdAt}`,
+        sessionId: file.sessionId || '',
+        deviceId: file.deviceId,
+        clientName: file.clientName || '',
+        latestTimestamp: file.createdAt,
+        earliestTimestamp: file.createdAt,
+        files: [file]
+      });
+    }
+  });
+
+  return sessions;
+}
+
 function renderAdminFilesTable() {
   const searchTerm = DOM.adminSearchInput.value.trim().toLowerCase();
   const filterType = DOM.adminFilterType.value;
@@ -754,62 +927,187 @@ function renderAdminFilesTable() {
   DOM.adminEmptyState.classList.add('hidden');
   DOM.adminTableBody.innerHTML = '';
 
+  // 1. Group into Date buckets
+  const dateGroups = [];
+  const dateMap = new Map();
+
   filtered.forEach((file) => {
-    const tr = document.createElement('tr');
-    const isImage = file.mimeType.startsWith('image/');
-    const expiry = formatRemainingTime(file.expiresAt);
+    const dateKey = getDateKey(file.createdAt);
+    if (!dateMap.has(dateKey)) {
+      const group = {
+        dateKey,
+        sampleTimestamp: file.createdAt,
+        files: []
+      };
+      dateMap.set(dateKey, group);
+      dateGroups.push(group);
+    }
+    dateMap.get(dateKey).files.push(file);
+  });
 
-    const thumbHtml = isImage
-      ? `<div class="table-thumb-cell" title="${t('btnPreview')}"><img src="${file.url}" alt="${file.fileName}" /></div>`
-      : `<div class="table-thumb-cell" title="${t('btnPreview')}"><span style="font-size:1.8rem">📄</span></div>`;
-
-    tr.innerHTML = `
-      <td>${thumbHtml}</td>
-      <td>
-        <div class="table-file-info">
-          <span class="table-filename" title="${file.fileName}" dir="auto">${file.fileName}</span>
-          <span class="table-filetype">${file.mimeType}</span>
-        </div>
-      </td>
-      <td>
-        <div class="table-device-tag">
-          <span class="device-chip">${file.deviceId}</span>
-          ${file.clientName ? `<span class="client-name-tag" dir="auto">👤 ${file.clientName}</span>` : `<span class="client-name-tag" style="color:var(--text-dim)">${t('unnamedClient')}</span>`}
-        </div>
-      </td>
-      <td>
-        <span class="table-time-text">${formatDateTime(file.createdAt)}</span>
-      </td>
-      <td>
-        <span class="file-expiry-badge ${expiry.isUrgent ? 'expiring-soon' : ''}">
-          ${expiry.text}
-        </span>
-      </td>
-      <td>
-        <span class="file-size-tag">${formatFileSize(file.fileSize)}</span>
-      </td>
-      <td>
-        <div style="display:flex; gap:6px;">
-          <button class="btn btn-outline btn-row-preview" title="${t('btnPreview')}">👁️</button>
-          <a href="${file.url}" download="${file.fileName}" class="btn btn-primary" title="${t('btnDownloadFile')}">⬇️</a>
-          <button class="btn btn-danger-outline btn-row-delete" title="${t('btnDelete')}">🗑️</button>
+  // 2. Iterate each Date Group
+  dateGroups.forEach((group) => {
+    // Render Date Group Divider Row
+    const dateTr = document.createElement('tr');
+    dateTr.className = 'tr-date-group';
+    dateTr.innerHTML = `
+      <td colspan="7">
+        <div class="date-group-bar">
+          <div class="date-group-title">
+            <svg class="date-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span class="date-group-text">${formatDateGroupTitle(group.dateKey, group.sampleTimestamp)}</span>
+          </div>
+          <span class="date-group-badge">${group.files.length} ${t('dateGroupFilesCount')}</span>
         </div>
       </td>
     `;
+    DOM.adminTableBody.appendChild(dateTr);
 
-    // Row Events
-    tr.querySelector('.table-thumb-cell').addEventListener('click', () => openPreviewModal(file));
-    tr.querySelector('.btn-row-preview').addEventListener('click', () => openPreviewModal(file));
-    tr.querySelector('.btn-row-delete').addEventListener('click', async () => {
-      if (confirm(`${t('deleteConfirm')}${file.fileName}?`)) {
-        await storageManager.deleteFile(file.id);
-        showToast(t('deleteSuccess'), 'success');
-        await refreshAdminDashboard();
-        await refreshClientFiles();
-      }
+    // 3. Cluster files in this date into Client Sessions
+    const sessions = clusterIntoClientSessions(group.files);
+
+    sessions.forEach((session) => {
+      // Render Client Session Header Row
+      const sessionTr = document.createElement('tr');
+      sessionTr.className = 'tr-client-session';
+
+      const clientDisplayName = session.clientName ? session.clientName : t('unnamedClient');
+
+      sessionTr.innerHTML = `
+        <td colspan="7">
+          <div class="client-session-bar">
+            <div class="session-left-group">
+              <div class="session-client-badge">
+                <svg class="session-user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span class="session-client-name" dir="auto">${clientDisplayName}</span>
+                <span class="device-chip">${session.deviceId}</span>
+              </div>
+
+              <div class="session-time-chip">
+                <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                <span>${formatSessionTime(session.latestTimestamp)}</span>
+              </div>
+
+              <div class="session-summary-chip">
+                <svg class="session-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>${formatSessionSummary(session.files)}</span>
+              </div>
+            </div>
+
+            <div class="session-actions-group">
+              <button class="btn btn-session-download-all" title="${t('btnDownloadAll')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>${t('btnDownloadAll')} (${session.files.length})</span>
+              </button>
+            </div>
+          </div>
+        </td>
+      `;
+
+      // Download all files event
+      sessionTr.querySelector('.btn-session-download-all').addEventListener('click', () => {
+        downloadSessionFiles(session.files, clientDisplayName);
+      });
+
+      DOM.adminTableBody.appendChild(sessionTr);
+
+      // 4. Render files belonging to this session
+      session.files.forEach((file) => {
+        const fileTr = document.createElement('tr');
+        fileTr.className = 'tr-session-member';
+
+        const isImage = file.mimeType.startsWith('image/');
+        const expiry = formatRemainingTime(file.expiresAt);
+
+        const thumbHtml = isImage
+          ? `<div class="table-thumb-cell" title="${t('btnPreview')}"><img src="${file.url}" alt="${file.fileName}" /></div>`
+          : `<div class="table-thumb-cell" title="${t('btnPreview')}"><span style="font-size:1.8rem">📄</span></div>`;
+
+        fileTr.innerHTML = `
+          <td>${thumbHtml}</td>
+          <td>
+            <div class="table-file-info">
+              <span class="table-filename" title="${file.fileName}" dir="auto">${file.fileName}</span>
+              <span class="table-filetype">${file.mimeType}</span>
+            </div>
+          </td>
+          <td>
+            <div class="table-device-tag">
+              <span class="device-chip">${file.deviceId}</span>
+              ${file.clientName ? `<span class="client-name-tag" dir="auto">👤 ${file.clientName}</span>` : `<span class="client-name-tag" style="color:var(--text-dim)">${t('unnamedClient')}</span>`}
+            </div>
+          </td>
+          <td>
+            <span class="table-time-text">${formatDateTime(file.createdAt)}</span>
+          </td>
+          <td>
+            <span class="file-expiry-badge ${expiry.isUrgent ? 'expiring-soon' : ''}">
+              ${expiry.text}
+            </span>
+          </td>
+          <td>
+            <span class="file-size-tag">${formatFileSize(file.fileSize)}</span>
+          </td>
+          <td>
+            <div class="row-actions-wrap">
+              <button class="btn-action-icon btn-action-preview" title="${t('btnPreview')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+              </button>
+              <button class="btn-action-icon btn-action-download" title="${t('btnDownloadFile')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+              </button>
+              <button class="btn-action-icon btn-action-delete" title="${t('btnDelete')}">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </div>
+          </td>
+        `;
+
+        // Row Events
+        fileTr.querySelector('.table-thumb-cell').addEventListener('click', () => openPreviewModal(file));
+        fileTr.querySelector('.btn-action-preview').addEventListener('click', () => openPreviewModal(file));
+        fileTr.querySelector('.btn-action-download').addEventListener('click', () => downloadSingleFile(file));
+        fileTr.querySelector('.btn-action-delete').addEventListener('click', async () => {
+          if (confirm(`${t('deleteConfirm')}${file.fileName}?`)) {
+            await storageManager.deleteFile(file.id);
+            showToast(t('deleteSuccess'), 'success');
+            await refreshAdminDashboard();
+            await refreshClientFiles();
+          }
+        });
+
+        DOM.adminTableBody.appendChild(fileTr);
+      });
     });
-
-    DOM.adminTableBody.appendChild(tr);
   });
 }
 
@@ -1115,3 +1413,19 @@ function attachEventListeners() {
 
 // Start Application
 window.addEventListener('DOMContentLoaded', initApp);
+
+// Register Service Worker for PWA Installation
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((err) => {
+      console.log('SW registration note:', err);
+    });
+  });
+}
+
+// PWA Install prompt listener
+let deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+});
