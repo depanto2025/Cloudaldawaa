@@ -1340,6 +1340,63 @@ body {
   height: 15px;
 }
 
+/* ==========================================================================
+   LATEST CLIENT SESSION - GRADUATED LIGHT GREEN HIGHLIGHT (أحدث عميل)
+   ========================================================================== */
+.tr-client-session.is-latest-client .client-session-bar {
+  /* Graduated light green gradient flowing softly */
+  background: linear-gradient(90deg, rgba(16, 185, 129, 0.28) 0%, rgba(5, 150, 105, 0.16) 45%, rgba(15, 30, 54, 0.95) 100%) !important;
+  border: 1px solid rgba(52, 211, 153, 0.55) !important;
+  border-inline-start: 5px solid #10B981 !important;
+  box-shadow: 0 4px 22px rgba(16, 185, 129, 0.25), inset 0 0 16px rgba(16, 185, 129, 0.08) !important;
+  position: relative;
+}
+
+.latest-client-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(16, 185, 129, 0.25);
+  color: #34D399;
+  border: 1px solid rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.3);
+  animation: pulse-soft 2s infinite ease-in-out;
+}
+
+.pulse-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  display: inline-block;
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 16px rgba(16, 185, 129, 0.55);
+  }
+}
+
+.tr-session-member.is-latest-client-member td:first-child {
+  border-inline-start: 4px solid #10B981 !important;
+}
+
+.tr-session-member.is-latest-client-member td {
+  background: rgba(16, 185, 129, 0.035) !important;
+}
+
+.tr-session-member.is-latest-client-member:hover td {
+  background: rgba(16, 185, 129, 0.08) !important;
+}
+
 /* Session member row (subtle indentation and connection) */
 .tr-session-member {
   transition: var(--transition-fast);
@@ -2679,4 +2736,36 @@ html[data-theme="light"] .btn-session-download-separate:hover {
   border-color: #3B82F6;
   color: #1E40AF;
 }
+
+/* Latest Client Session in Light Mode - Graduated fresh light mint/emerald green */
+html[data-theme="light"] .tr-client-session.is-latest-client .client-session-bar {
+  background: linear-gradient(90deg, #D1FAE5 0%, #ECFDF5 50%, #FFFFFF 100%) !important;
+  border: 1.5px solid #6EE7B7 !important;
+  border-inline-start: 5px solid #059669 !important;
+  box-shadow: 0 4px 18px rgba(16, 185, 129, 0.16) !important;
+}
+
+html[data-theme="light"] .latest-client-chip {
+  background: #D1FAE5 !important;
+  color: #065F46 !important;
+  border: 1px solid #6EE7B7 !important;
+}
+
+html[data-theme="light"] .pulse-indicator {
+  background: #059669 !important;
+  box-shadow: 0 0 6px #059669 !important;
+}
+
+html[data-theme="light"] .tr-session-member.is-latest-client-member td:first-child {
+  border-inline-start: 4px solid #059669 !important;
+}
+
+html[data-theme="light"] .tr-session-member.is-latest-client-member td {
+  background: rgba(209, 250, 229, 0.22) !important;
+}
+
+html[data-theme="light"] .tr-session-member.is-latest-client-member:hover td {
+  background: rgba(209, 250, 229, 0.45) !important;
+}
+
 

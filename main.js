@@ -96,6 +96,7 @@ const TRANSLATIONS = {
     btnDownloadZip: 'تحميل الكل (ملف ZIP)',
     btnDownloadSeparate: 'تنزيل منفصل',
     btnDownloadSingle: 'تحميل الملف',
+    latestClientBadge: 'أحدث عميل ⚡',
     clientSessionLabel: 'جلسة رفع للعميل',
     // PIN Modal
     pinModalTitle: 'التحقق من رقم الحماية 🔒',
@@ -196,6 +197,7 @@ const TRANSLATIONS = {
     btnDownloadZip: 'Download All (ZIP)',
     btnDownloadSeparate: 'Download Separately',
     btnDownloadSingle: 'Download File',
+    latestClientBadge: 'Latest Client ⚡',
     clientSessionLabel: 'Client Upload Session',
     // PIN Modal
     pinModalTitle: 'Security PIN Verification 🔒',
@@ -534,6 +536,9 @@ async function initApp() {
 
   // Attach Event Listeners
   attachEventListeners();
+
+  // Setup Realtime Live Updates & Audio Alerts
+  setupRealtimeLiveSync();
 }
 
 // Switch between Views
@@ -704,14 +709,54 @@ async function handleFilesUpload(filesList) {
   await refreshAdminDashboard();
 }
 
-// ==========================================================================
-// Admin Dashboard Operations
-// ==========================================================================
-async function refreshAdminDashboard() {
-  allAdminFiles = await storageManager.getAllActiveFiles();
-  DOM.badgeTotalFilesNav.textContent = allAdminFiles.length;
+// Web Audio API soft melodic chime for live client document notifications
+function playNotificationChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
+    const now = ctx.currentTime;
+    
+    // Note 1: E5 (659.25Hz)
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = 'sine';
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.12, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
 
-  // Calculate Metrics
+    // Note 2: A5 (880Hz) slightly delayed for a pleasant two-tone chime
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(880, now + 0.12);
+    gain2.gain.setValueAtTime(0.15, now + 0.12);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.12);
+    osc2.stop(now + 0.55);
+  } catch (e) {
+    // AudioContext may require user interaction on some policies, fail silently
+  }
+}
+
+let lastFilesSignature = '';
+
+function computeFilesSignature(files) {
+  if (!files || files.length === 0) return '0_0';
+  const latest = Math.max(...files.map(f => f.createdAt || 0));
+  return `${files.length}_${latest}_${files[0]?.id || ''}`;
+}
+
+function updateAdminMetrics() {
   const totalFiles = allAdminFiles.length;
   const uniqueDevices = new Set(allAdminFiles.map(f => f.deviceId)).size;
   const totalBytes = allAdminFiles.reduce((sum, f) => sum + (f.fileSize || 0), 0);
@@ -726,7 +771,72 @@ async function refreshAdminDashboard() {
   DOM.statTotalDevices.textContent = uniqueDevices;
   DOM.statTotalSize.textContent = formatFileSize(totalBytes);
   DOM.statExpiringSoon.textContent = expiringSoonCount;
+}
 
+// Live Realtime Synchronization (BroadcastChannel, Supabase Realtime, and smart polling fallback)
+function setupRealtimeLiveSync() {
+  // 1. Subscribe to storageManager events (BroadcastChannel + Supabase Realtime)
+  storageManager.onFileChange(async (change) => {
+    await refreshAdminDashboard();
+    await refreshClientFiles();
+
+    if (change?.type === 'FILE_UPLOADED' || (change?.type === 'SUPABASE_CHANGE' && change?.payload?.eventType === 'INSERT')) {
+      playNotificationChime();
+      showToast(
+        currentLang === 'ar'
+          ? 'تم استلام مستندات جديدة من عميل الآن! ⚡'
+          : 'New document received from client! ⚡',
+        'success'
+      );
+    }
+  });
+
+  // 2. Fallback smart poll every 3.5 seconds to guarantee live updates even if WebSockets are blocked
+  setInterval(async () => {
+    if (document.hidden) return;
+
+    try {
+      const activeFiles = await storageManager.getAllActiveFiles();
+      const newSig = computeFilesSignature(activeFiles);
+
+      if (lastFilesSignature && newSig !== lastFilesSignature) {
+        const isNewUpload = activeFiles.length > allAdminFiles.length ||
+          (activeFiles[0] && (!allAdminFiles[0] || activeFiles[0].createdAt > allAdminFiles[0].createdAt));
+
+        allAdminFiles = activeFiles;
+        lastFilesSignature = newSig;
+
+        DOM.badgeTotalFilesNav.textContent = allAdminFiles.length;
+        updateAdminMetrics();
+        renderAdminFilesTable();
+
+        if (isNewUpload) {
+          playNotificationChime();
+          showToast(
+            currentLang === 'ar'
+              ? 'تم استلام مستندات جديدة من عميل الآن! ⚡'
+              : 'New document received from client! ⚡',
+            'success'
+          );
+        }
+      } else {
+        lastFilesSignature = newSig;
+      }
+    } catch (err) {
+      console.warn('Live sync poll warning:', err);
+    }
+  }, 3500);
+}
+
+// ==========================================================================
+// Admin Dashboard Operations
+// ==========================================================================
+async function refreshAdminDashboard() {
+  allAdminFiles = await storageManager.getAllActiveFiles();
+  DOM.badgeTotalFilesNav.textContent = allAdminFiles.length;
+  lastFilesSignature = computeFilesSignature(allAdminFiles);
+
+  updateAdminMetrics();
   renderAdminFilesTable();
 }
 
@@ -1147,6 +1257,19 @@ function renderAdminFilesTable() {
     dateMap.get(dateKey).files.push(file);
   });
 
+  // Identify the latest client session across all files for distinct graduated light green highlight
+  let latestOverallSessionId = null;
+  let maxSessionTimestamp = -1;
+  dateGroups.forEach((group) => {
+    const groupSessions = clusterIntoClientSessions(group.files);
+    groupSessions.forEach((s) => {
+      if (s.latestTimestamp > maxSessionTimestamp) {
+        maxSessionTimestamp = s.latestTimestamp;
+        latestOverallSessionId = s.id;
+      }
+    });
+  });
+
   // 2. Iterate each Date Group
   dateGroups.forEach((group) => {
     // Render Date Group Divider Row
@@ -1174,9 +1297,11 @@ function renderAdminFilesTable() {
     const sessions = clusterIntoClientSessions(group.files);
 
     sessions.forEach((session) => {
+      const isLatestClient = session.id === latestOverallSessionId;
+
       // Render Client Session Header Row
       const sessionTr = document.createElement('tr');
-      sessionTr.className = 'tr-client-session';
+      sessionTr.className = `tr-client-session ${isLatestClient ? 'is-latest-client' : ''}`;
 
       const clientDisplayName = session.clientName ? session.clientName : t('unnamedClient');
 
@@ -1192,6 +1317,13 @@ function renderAdminFilesTable() {
                 <span class="session-client-name" dir="auto">${clientDisplayName}</span>
                 <span class="device-chip">${session.deviceId}</span>
               </div>
+
+              ${isLatestClient ? `
+                <div class="latest-client-chip" title="${currentLang === 'ar' ? 'أحدث عميل رفع مستندات' : 'Most Recent Client'}">
+                  <span class="pulse-indicator"></span>
+                  <span>${t('latestClientBadge')}</span>
+                </div>
+              ` : ''}
 
               <div class="session-time-chip">
                 <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1271,7 +1403,7 @@ function renderAdminFilesTable() {
       // 4. Render files belonging to this session
       session.files.forEach((file) => {
         const fileTr = document.createElement('tr');
-        fileTr.className = 'tr-session-member';
+        fileTr.className = `tr-session-member ${isLatestClient ? 'is-latest-client-member' : ''}`;
 
         const isImage = file.mimeType.startsWith('image/');
         const expiry = formatRemainingTime(file.expiresAt);

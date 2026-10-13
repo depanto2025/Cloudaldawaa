@@ -63,7 +63,84 @@ class CloudStorageManager {
     this.supabaseClient = null;
     this.bucketName = 'client-documents';
     this.isSupabaseConfigured = false;
+    this.listeners = new Set();
+    this.broadcastChannel = null;
+    this.realtimeChannel = null;
     this.initSupabase();
+    this.initRealtime();
+  }
+
+  initRealtime() {
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        this.broadcastChannel = new BroadcastChannel('cloud_doc_realtime_v1');
+        this.broadcastChannel.onmessage = (event) => {
+          this.notifyListeners(event.data);
+        };
+      }
+    } catch (e) {
+      console.warn('BroadcastChannel error:', e);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEYS.LOCAL_FILES) {
+          this.notifyListeners({ type: 'LOCAL_STORAGE_CHANGE' });
+        }
+      });
+    }
+
+    this.setupSupabaseRealtime();
+  }
+
+  setupSupabaseRealtime() {
+    if (this.realtimeChannel) {
+      try {
+        this.supabaseClient?.removeChannel(this.realtimeChannel);
+      } catch (e) {}
+      this.realtimeChannel = null;
+    }
+
+    if (this.isSupabaseConfigured && this.supabaseClient) {
+      try {
+        this.realtimeChannel = this.supabaseClient
+          .channel('realtime_uploaded_files')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'uploaded_files' },
+            (payload) => {
+              this.notifyListeners({ type: 'SUPABASE_CHANGE', payload });
+            }
+          )
+          .subscribe();
+      } catch (err) {
+        console.warn('Supabase Realtime setup warning:', err);
+      }
+    }
+  }
+
+  notifyListeners(data) {
+    this.listeners.forEach((cb) => {
+      try {
+        cb(data);
+      } catch (e) {
+        console.error('Error in change listener:', e);
+      }
+    });
+  }
+
+  broadcastChange(eventData) {
+    this.notifyListeners(eventData);
+    if (this.broadcastChannel) {
+      try {
+        this.broadcastChannel.postMessage(eventData);
+      } catch (e) {}
+    }
+  }
+
+  onFileChange(callback) {
+    this.listeners.add(callback);
+    return () => this.listeners.delete(callback);
   }
 
   initSupabase() {
@@ -89,6 +166,8 @@ class CloudStorageManager {
       this.supabaseClient = null;
       this.isSupabaseConfigured = false;
     }
+
+    this.setupSupabaseRealtime();
   }
 
   saveSupabaseConfig(url, anonKey, bucket) {
@@ -193,6 +272,7 @@ class CloudStorageManager {
         };
 
         this.saveLocalRecord(savedRecord);
+        this.broadcastChange({ type: 'FILE_UPLOADED', file: savedRecord });
         return savedRecord;
       } catch (err) {
         console.error('Supabase upload error, fallback to local demo:', err);
@@ -231,6 +311,7 @@ class CloudStorageManager {
     };
 
     this.saveLocalRecord(record);
+    this.broadcastChange({ type: 'FILE_UPLOADED', file: record });
     onProgress(100);
     return record;
   }
@@ -311,6 +392,7 @@ class CloudStorageManager {
     const local = this.getLocalRecords();
     const filtered = local.filter((f) => f.id !== fileId);
     localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(filtered));
+    this.broadcastChange({ type: 'FILE_DELETED', fileId });
   }
 
   // Clean all expired files
