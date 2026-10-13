@@ -1591,7 +1591,8 @@ body {
 
 /* STRICT CLIENT MODE ISOLATION:
    When body has .mode-client, hide ALL admin navigation, banners, buttons, and dashboard */
-body.mode-client .admin-only {
+body.mode-client .admin-only,
+body.mode-client .brand-title .badge-tag {
   display: none !important;
 }
 
@@ -2054,8 +2055,9 @@ html[data-theme="light"] .ttl-badge {
 
 html[data-theme="light"] .dashboard-table th {
   background: #F1F5F9;
-  color: #475569;
-  border-bottom: 1px solid #CBD5E1;
+  color: #0F172A;
+  font-weight: 700;
+  border-bottom: 2px solid #CBD5E1;
 }
 
 html[data-theme="light"] .dashboard-table td {
@@ -2067,14 +2069,53 @@ html[data-theme="light"] .dashboard-table tr:hover td {
   background: #F8FAFC;
 }
 
-html[data-theme="light"] .file-name-cell .file-primary-name {
-  color: #0F172A;
+/* User Request: Make file names in Light Mode dark orange, completely avoiding white text */
+html[data-theme="light"] .table-filename {
+  color: #C2410C !important; /* Bold Dark Orange */
+  font-weight: 800;
 }
 
-html[data-theme="light"] .device-pill {
+html[data-theme="light"] .table-filetype {
+  color: #64748B !important;
+  font-weight: 500;
+}
+
+html[data-theme="light"] .table-thumb-cell {
   background: #F1F5F9;
-  border-color: #CBD5E1;
-  color: #334155;
+  border: 1px solid #E2E8F0;
+}
+
+html[data-theme="light"] .device-chip {
+  color: #0369A1 !important;
+  background: #E0F2FE !important;
+  border: 1px solid #BAE6FD;
+}
+
+html[data-theme="light"] .client-name-tag {
+  color: #1E293B !important;
+  font-weight: 700;
+}
+
+html[data-theme="light"] .table-time-text {
+  color: #334155 !important;
+  font-weight: 600;
+}
+
+html[data-theme="light"] .file-size-tag {
+  color: #475569 !important;
+  font-weight: 600;
+}
+
+html[data-theme="light"] .file-expiry-badge {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+
+html[data-theme="light"] .file-expiry-badge.expiring-soon {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
 }
 
 html[data-theme="light"] .modal-dialog {
