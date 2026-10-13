@@ -723,37 +723,34 @@ async function refreshAdminDashboard() {
   renderAdminFilesTable();
 }
 
-// Helper: Download a single file safely using Blob or direct link with loading state
-async function downloadSingleFile(file, triggerBtn) {
+// Helper: Get direct download URL with attachment header from Supabase
+function getDirectDownloadUrl(file) {
+  if (!file || !file.url) return '';
+  if (file.url.includes('supabase.co')) {
+    const cleanUrl = file.url.replace(/[?&]download=[^&]*/g, '');
+    const separator = cleanUrl.includes('?') ? '&' : '?';
+    return `${cleanUrl}${separator}download=${encodeURIComponent(file.fileName)}`;
+  }
+  return file.url;
+}
+
+// Helper: Download a single file using direct browser download with native attachment headers
+function downloadSingleFile(file, triggerBtn) {
   if (triggerBtn && triggerBtn.disabled) return;
 
-  let originalHtml = '';
+  const downloadUrl = getDirectDownloadUrl(file);
+
   if (triggerBtn) {
     triggerBtn.disabled = true;
     triggerBtn.classList.add('is-downloading');
-    originalHtml = triggerBtn.innerHTML;
+    const originalHtml = triggerBtn.innerHTML;
     triggerBtn.innerHTML = `
       <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
       </svg>
     `;
-    triggerBtn.title = currentLang === 'ar' ? 'جاري التحميل...' : 'Downloading...';
-  }
 
-  try {
-    const response = await fetch(file.url);
-    if (!response.ok) throw new Error('Fetch failed');
-    const blob = await response.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = file.fileName;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
-
-    if (triggerBtn) {
+    setTimeout(() => {
       triggerBtn.classList.remove('is-downloading');
       triggerBtn.classList.add('is-success');
       triggerBtn.innerHTML = `
@@ -765,26 +762,18 @@ async function downloadSingleFile(file, triggerBtn) {
         triggerBtn.classList.remove('is-success');
         triggerBtn.innerHTML = originalHtml;
         triggerBtn.disabled = false;
-        triggerBtn.title = t('btnDownloadFile');
       }, 1500);
-    }
-  } catch {
-    // Fallback directly to anchor click
-    const a = document.createElement('a');
-    a.href = file.url;
-    a.download = file.fileName;
-    a.target = '_blank';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    if (triggerBtn) {
-      triggerBtn.classList.remove('is-downloading');
-      triggerBtn.innerHTML = originalHtml;
-      triggerBtn.disabled = false;
-      triggerBtn.title = t('btnDownloadFile');
-    }
+    }, 800);
   }
+
+  // Trigger native browser download directly via anchor
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = file.fileName;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 // Helper: Download all files for a specific client session with multi-file loading state
@@ -820,9 +809,9 @@ async function downloadSessionFiles(files, clientLabel, triggerBtn) {
       `;
     }
 
-    await downloadSingleFile(files[i]);
+    downloadSingleFile(files[i]);
     if (i < files.length - 1) {
-      await new Promise(r => setTimeout(r, 450));
+      await new Promise(r => setTimeout(r, 600));
     }
   }
 
@@ -1150,13 +1139,13 @@ function renderAdminFilesTable() {
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
               </button>
-              <button class="btn-action-icon btn-action-download" title="${t('btnDownloadFile')}">
+              <a href="${getDirectDownloadUrl(file)}" download="${file.fileName}" class="btn-action-icon btn-action-download" title="${t('btnDownloadFile')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                   <polyline points="7 10 12 15 17 10"></polyline>
                   <line x1="12" y1="15" x2="12" y2="3"></line>
                 </svg>
-              </button>
+              </a>
               <button class="btn-action-icon btn-action-delete" title="${t('btnDelete')}">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <polyline points="3 6 5 6 21 6"></polyline>
@@ -1172,7 +1161,33 @@ function renderAdminFilesTable() {
         // Row Events
         fileTr.querySelector('.table-thumb-cell').addEventListener('click', () => openPreviewModal(file));
         fileTr.querySelector('.btn-action-preview').addEventListener('click', () => openPreviewModal(file));
-        fileTr.querySelector('.btn-action-download').addEventListener('click', (e) => downloadSingleFile(file, e.currentTarget));
+        fileTr.querySelector('.btn-action-download').addEventListener('click', (e) => {
+          const btn = e.currentTarget;
+          if (btn.classList.contains('is-downloading')) {
+            e.preventDefault();
+            return;
+          }
+          btn.classList.add('is-downloading');
+          const originalHtml = btn.innerHTML;
+          btn.innerHTML = `
+            <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+            </svg>
+          `;
+          setTimeout(() => {
+            btn.classList.remove('is-downloading');
+            btn.classList.add('is-success');
+            btn.innerHTML = `
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+            `;
+            setTimeout(() => {
+              btn.classList.remove('is-success');
+              btn.innerHTML = originalHtml;
+            }, 1500);
+          }, 1000);
+        });
         fileTr.querySelector('.btn-action-delete').addEventListener('click', async () => {
           if (confirm(`${t('deleteConfirm')}${file.fileName}?`)) {
             await storageManager.deleteFile(file.id);
@@ -1221,7 +1236,7 @@ async function setupQrCode() {
 function openPreviewModal(file) {
   DOM.previewFilename.textContent = file.fileName;
   DOM.previewFilemeta.textContent = `${formatFileSize(file.fileSize)} • ${file.mimeType}`;
-  DOM.btnDownloadPreview.href = file.url;
+  DOM.btnDownloadPreview.href = getDirectDownloadUrl(file);
   DOM.btnDownloadPreview.download = file.fileName;
 
   if (file.mimeType.startsWith('image/')) {
