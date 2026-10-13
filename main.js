@@ -1,5 +1,6 @@
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
+import JSZip from 'jszip';
 import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS, getRetentionSettings, saveRetentionSettings } from './storage.js';
 
 // Multilingual Dictionary (Arabic & English)
@@ -92,6 +93,9 @@ const TRANSLATIONS = {
     yesterday: 'أمس',
     dateGroupFilesCount: 'مستندات',
     btnDownloadAll: 'تحميل كل ملفات العميل',
+    btnDownloadZip: 'تحميل الكل (ملف ZIP)',
+    btnDownloadSeparate: 'تنزيل منفصل',
+    btnDownloadSingle: 'تحميل الملف',
     clientSessionLabel: 'جلسة رفع للعميل',
     // PIN Modal
     pinModalTitle: 'التحقق من رقم الحماية 🔒',
@@ -189,6 +193,9 @@ const TRANSLATIONS = {
     yesterday: 'Yesterday',
     dateGroupFilesCount: 'documents',
     btnDownloadAll: 'Download All Files',
+    btnDownloadZip: 'Download All (ZIP)',
+    btnDownloadSeparate: 'Download Separately',
+    btnDownloadSingle: 'Download File',
     clientSessionLabel: 'Client Upload Session',
     // PIN Modal
     pinModalTitle: 'Security PIN Verification 🔒',
@@ -776,19 +783,28 @@ function downloadSingleFile(file, triggerBtn) {
   document.body.removeChild(a);
 }
 
-// Helper: Download all files for a specific client session with multi-file loading state
-async function downloadSessionFiles(files, clientLabel, triggerBtn) {
+// Helper: Download via isolated hidden iframe (prevents Chrome top-level navigation cancels)
+function downloadViaIframe(url) {
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.top = '-9999px';
+  iframe.style.left = '-9999px';
+  iframe.style.width = '1px';
+  iframe.style.height = '1px';
+  iframe.style.opacity = '0';
+  iframe.style.border = 'none';
+  iframe.src = url;
+  document.body.appendChild(iframe);
+  setTimeout(() => iframe.remove(), 45000);
+}
+
+// Helper: Download all files of a session bundled together in a single ZIP file (100% reliable)
+async function downloadSessionAsZip(files, clientLabel, triggerBtn) {
   if (!files || files.length === 0) return;
   if (triggerBtn && triggerBtn.disabled) return;
 
   const label = clientLabel || (currentLang === 'ar' ? 'العميل' : 'Client');
-  showToast(
-    currentLang === 'ar'
-      ? `جاري بدء تحميل ${files.length} ملفات لـ (${label})...`
-      : `Starting download of ${files.length} files for (${label})...`,
-    'info'
-  );
-
+  
   let originalHtml = '';
   if (triggerBtn) {
     triggerBtn.disabled = true;
@@ -796,10 +812,125 @@ async function downloadSessionFiles(files, clientLabel, triggerBtn) {
     originalHtml = triggerBtn.innerHTML;
   }
 
+  showToast(
+    currentLang === 'ar'
+      ? `جاري تجهيز ${files.length} ملفات وضغطها في ملف ZIP...`
+      : `Bundling ${files.length} files into ZIP archive...`,
+    'info'
+  );
+
+  try {
+    const zip = new JSZip();
+    const usedNames = new Set();
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (triggerBtn) {
+        triggerBtn.innerHTML = `
+          <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+          </svg>
+          <span>${currentLang === 'ar' ? `جاري ضم الملفات (${i + 1}/${files.length})...` : `Adding (${i + 1}/${files.length})...`}</span>
+        `;
+      }
+
+      // Fetch file data
+      const response = await fetch(file.url);
+      if (!response.ok) throw new Error(`Failed to fetch ${file.fileName}`);
+      const blob = await response.blob();
+
+      // Ensure unique filename inside zip
+      let name = file.fileName || `file_${i + 1}`;
+      if (usedNames.has(name)) {
+        const dotIndex = name.lastIndexOf('.');
+        const ext = dotIndex > -1 ? name.slice(dotIndex) : '';
+        const base = dotIndex > -1 ? name.slice(0, dotIndex) : name;
+        let counter = 1;
+        while (usedNames.has(`${base}_(${counter})${ext}`)) {
+          counter++;
+        }
+        name = `${base}_(${counter})${ext}`;
+      }
+      usedNames.add(name);
+
+      zip.file(name, blob);
+    }
+
+    if (triggerBtn) {
+      triggerBtn.innerHTML = `
+        <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+        <span>${currentLang === 'ar' ? 'جاري إنشاء ملف الـ ZIP...' : 'Generating ZIP...'}</span>
+      `;
+    }
+
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    const cleanLabel = (clientLabel || 'Client').replace(/[^\w\u0600-\u06FF\s-]/g, '').trim();
+    const zipFileName = `${cleanLabel || 'client'}_documents_${Date.now().toString().slice(-4)}.zip`;
+
+    const blobUrl = URL.createObjectURL(zipBlob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = zipFileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+
+    if (triggerBtn) {
+      triggerBtn.classList.remove('is-downloading');
+      triggerBtn.classList.add('is-success');
+      triggerBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>${currentLang === 'ar' ? 'تم تنزيل الـ ZIP بنجاح ✓' : 'ZIP Downloaded ✓'}</span>
+      `;
+      setTimeout(() => {
+        triggerBtn.classList.remove('is-success');
+        triggerBtn.innerHTML = originalHtml;
+        triggerBtn.disabled = false;
+      }, 2500);
+    }
+  } catch (err) {
+    console.error('ZIP generation failed, fallback to separate download:', err);
+    showToast(currentLang === 'ar' ? 'تعذر الضغط، سيتم التنزيل منفصلاً...' : 'Fallback to separate download...', 'warning');
+    if (triggerBtn) {
+      triggerBtn.classList.remove('is-downloading');
+      triggerBtn.innerHTML = originalHtml;
+      triggerBtn.disabled = false;
+    }
+    await downloadSessionFilesSeparately(files, clientLabel, triggerBtn);
+  }
+}
+
+// Helper: Download all files for a specific client session separately via isolated iframes
+async function downloadSessionFilesSeparately(files, clientLabel, triggerBtn) {
+  if (!files || files.length === 0) return;
+  if (triggerBtn && triggerBtn.disabled) return;
+
+  const label = clientLabel || (currentLang === 'ar' ? 'العميل' : 'Client');
+  
+  let originalHtml = '';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.classList.add('is-downloading');
+    originalHtml = triggerBtn.innerHTML;
+  }
+
+  showToast(
+    currentLang === 'ar'
+      ? `جاري تنزيل ${files.length} ملفات منفصلة لـ (${label})... إذا ظهر تنبيه المتصفح اضغط السماح (Allow).`
+      : `Downloading ${files.length} separate files for (${label})... Please allow automatic downloads if prompted.`,
+    'info'
+  );
+
   for (let i = 0; i < files.length; i++) {
+    const file = files[i];
     if (triggerBtn) {
       const progressText = currentLang === 'ar'
-        ? `جاري التحميل (${i + 1}/${files.length})...`
+        ? `جاري التنزيل (${i + 1}/${files.length})...`
         : `Downloading (${i + 1}/${files.length})...`;
       triggerBtn.innerHTML = `
         <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -809,9 +940,11 @@ async function downloadSessionFiles(files, clientLabel, triggerBtn) {
       `;
     }
 
-    downloadSingleFile(files[i]);
+    const downloadUrl = getDirectDownloadUrl(file);
+    downloadViaIframe(downloadUrl);
+
     if (i < files.length - 1) {
-      await new Promise(r => setTimeout(r, 600));
+      await new Promise(r => setTimeout(r, 1200));
     }
   }
 
@@ -822,7 +955,7 @@ async function downloadSessionFiles(files, clientLabel, triggerBtn) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <polyline points="20 6 9 17 4 12"></polyline>
       </svg>
-      <span>${currentLang === 'ar' ? 'تم التحميل بنجاح ✓' : 'Downloaded ✓'}</span>
+      <span>${currentLang === 'ar' ? 'تم بدء التنزيل ✓' : 'Downloads Started ✓'}</span>
     `;
 
     setTimeout(() => {
@@ -832,6 +965,9 @@ async function downloadSessionFiles(files, clientLabel, triggerBtn) {
     }, 2000);
   }
 }
+
+// Backward compatibility alias:
+const downloadSessionFiles = downloadSessionAsZip;
 
 // Helper: Extract Date Key (YYYY-MM-DD)
 function getDateKey(timestamp) {
@@ -1074,23 +1210,61 @@ function renderAdminFilesTable() {
             </div>
 
             <div class="session-actions-group">
-              <button class="btn btn-session-download-all" title="${t('btnDownloadAll')}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>${t('btnDownloadAll')} (${session.files.length})</span>
-              </button>
+              ${session.files.length === 1 ? `
+                <button class="btn btn-session-download-single" title="${t('btnDownloadSingle')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>${t('btnDownloadSingle')} (1)</span>
+                </button>
+              ` : `
+                <button class="btn btn-session-download-zip" title="${t('btnDownloadZip')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  <span>${t('btnDownloadZip')} (${session.files.length})</span>
+                </button>
+                <button class="btn btn-session-download-separate" title="${t('btnDownloadSeparate')}">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="12" y1="18" x2="12" y2="12"></line>
+                    <line x1="9" y1="15" x2="15" y2="15"></line>
+                  </svg>
+                  <span>${t('btnDownloadSeparate')}</span>
+                </button>
+              `}
             </div>
           </div>
         </td>
       `;
 
-      // Download all files event
-      sessionTr.querySelector('.btn-session-download-all').addEventListener('click', (e) => {
-        downloadSessionFiles(session.files, clientDisplayName, e.currentTarget);
-      });
+      // Download events for session
+      if (session.files.length === 1) {
+        const singleBtn = sessionTr.querySelector('.btn-session-download-single');
+        if (singleBtn) {
+          singleBtn.addEventListener('click', (e) => {
+            downloadSingleFile(session.files[0], e.currentTarget);
+          });
+        }
+      } else {
+        const zipBtn = sessionTr.querySelector('.btn-session-download-zip');
+        if (zipBtn) {
+          zipBtn.addEventListener('click', (e) => {
+            downloadSessionAsZip(session.files, clientDisplayName, e.currentTarget);
+          });
+        }
+        const sepBtn = sessionTr.querySelector('.btn-session-download-separate');
+        if (sepBtn) {
+          sepBtn.addEventListener('click', (e) => {
+            downloadSessionFilesSeparately(session.files, clientDisplayName, e.currentTarget);
+          });
+        }
+      }
 
       DOM.adminTableBody.appendChild(sessionTr);
 
