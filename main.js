@@ -5,9 +5,9 @@ import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS, getRetentionSetting
 // Multilingual Dictionary (Arabic & English)
 const TRANSLATIONS = {
   ar: {
-    appTitle: 'سحاب دوكس',
+    appTitle: 'مخزن المستندات',
     badgeStorage: 'سوبر بيز',
-    appSubtitle: 'نظام رفع المستندات والتأمين الذكي والمؤقت',
+    appSubtitle: 'مخزن المستندات والتأمين السحابي الذكي',
     tabClient: 'واجهة العميل',
     tabDashboard: 'الداشبورد (الإدارة)',
     btnClientBarcode: 'باركود العميل',
@@ -23,7 +23,7 @@ const TRANSLATIONS = {
     btnTriggerCamera: 'تصوير مباشر بالكاميرا',
     uploading: 'جاري رفع الملفات...',
     clientSectionTitle: 'المستندات التي قمت برفعها',
-    clientSectionDesc: 'هذه الملفات محفوظة حالياً في السيرفر وتُحذف تلقائياً بعد 3 أيام من تاريخ رفعها.',
+    clientSectionDesc: 'المستندات المحفوظة بأمان في السيرفر السحابي.',
     emptyClientTitle: 'لم تقم برفع أي ملفات حتى الآن',
     emptyClientDesc: 'قم بسحب ملفات التأمين أو الهوية أو الضغط على زر الاختيار أعلاه لرفعها فوراً.',
     statTotalFilesLabel: 'إجمالي الملفات (آخر 3 أيام)',
@@ -54,7 +54,7 @@ const TRANSLATIONS = {
     thActions: 'الإجراءات',
     adminEmptyTitle: 'لا توجد ملفات مرفوعة حالياً مطابقة للبحث',
     adminEmptyDesc: 'عندما يقوم العملاء بمسح الباركود ورفع المستندات، ستظهر جميعها هنا مع العداد التنازلي.',
-    footerCopy: 'سحاب دوكس © 2026 - نظام الرفع السريع لشركات التأمين والخدمات',
+    footerCopy: 'مخزن المستندات © 2026 - نظام الرفع السريع لشركات التأمين والخدمات',
     footerTtl: 'صلاحية المستندات: 3 أيام (72 ساعة)',
     footerSqlLink: 'كود إعداد Supabase SQL ⚡',
     qrModalTitle: 'باركود استقبال العملاء (QR Code)',
@@ -63,7 +63,7 @@ const TRANSLATIONS = {
     qrStandSubtitle: 'لا حاجة لتسجيل الدخول • مباشر وآمن من هاتفك',
     qrStep1: 'وجّه كاميرا هاتفك نحو الباركود وافتح الرابط',
     qrStep2: 'التقط صورة للوثيقة أو ارفع ملفات الـ PDF',
-    qrStep3: 'تصلنا المستندات فوراً وتُحفظ بأمان لمدة 3 أيام',
+    qrStep3: 'تصلنا المستندات فوراً وتُحفظ بأمان وسرية في النظام',
     btnPrintStand: 'طباعة ستاند الاستقبال',
     btnDownloadQr: 'تحميل الـ QR كصورة',
     btnCopyUrl: 'نسخ رابط العميل',
@@ -84,14 +84,21 @@ const TRANSLATIONS = {
     unnamedClient: 'بدون اسم',
     deleteConfirm: 'هل أنت متأكد من حذف المستند: ',
     deleteSuccess: 'تم حذف المستند بنجاح',
-    uploadSuccess: 'تم رفع المستندات بنجاح وحفظها لمدة 72 ساعة!',
+    uploadSuccess: 'تم رفع المستندات بنجاح وحفظها بأمان!',
     copied: 'تم النسخ بنجاح! ✓',
-    expiredText: 'منتهي الصلاحية'
+    expiredText: 'منتهي الصلاحية',
+    // PIN Modal
+    pinModalTitle: 'التحقق من رقم الحماية 🔒',
+    pinModalDesc: 'هذا القسم محمي برقم حماية. أدخل الرمز للمتابعة إلى إعدادات Supabase:',
+    pinPlaceholder: 'أدخل رقم الحماية...',
+    btnSubmitPin: 'تأكيد ودخول',
+    btnCancelPin: 'إلغاء',
+    pinIncorrect: 'رقم الحماية غير صحيح! حاول مرة أخرى'
   },
   en: {
-    appTitle: 'Cloud Docs',
+    appTitle: 'DocCloud',
     badgeStorage: 'Supabase',
-    appSubtitle: 'Smart Temporary Document & Insurance Upload Portal',
+    appSubtitle: 'Smart Cloud Document & Insurance Vault',
     tabClient: 'Client Portal',
     tabDashboard: 'Admin Dashboard',
     btnClientBarcode: 'Client QR Code',
@@ -107,7 +114,7 @@ const TRANSLATIONS = {
     btnTriggerCamera: 'Take Live Photo (Camera)',
     uploading: 'Uploading files...',
     clientSectionTitle: 'Documents You Have Uploaded',
-    clientSectionDesc: 'These files are securely saved on the server and will be automatically purged after 3 days.',
+    clientSectionDesc: 'Documents securely stored in the cloud vault.',
     emptyClientTitle: 'No documents uploaded yet',
     emptyClientDesc: 'Drag insurance papers, IDs, or tap the browse button above to upload immediately.',
     statTotalFilesLabel: 'Total Files (Last 3 Days)',
@@ -138,7 +145,7 @@ const TRANSLATIONS = {
     thActions: 'Actions',
     adminEmptyTitle: 'No uploaded documents matching your filter',
     adminEmptyDesc: 'Once customers scan the QR code and submit documents, they will appear here with live countdowns.',
-    footerCopy: 'Cloud Docs © 2026 - Fast Document Dispatch System',
+    footerCopy: 'DocCloud © 2026 - Fast Document Dispatch System',
     footerTtl: 'Document Retention: 3 Days (72 Hours)',
     footerSqlLink: 'Supabase SQL Setup Code ⚡',
     qrModalTitle: 'Customer Reception QR Code',
@@ -147,7 +154,7 @@ const TRANSLATIONS = {
     qrStandSubtitle: 'No login required • Instant & secure from your smartphone',
     qrStep1: 'Point your phone camera at the QR code and tap link',
     qrStep2: 'Snap a photo of your document or upload PDF',
-    qrStep3: 'Files arrive instantly and are securely retained for 3 days',
+    qrStep3: 'Documents are received instantly and securely stored in the system',
     btnPrintStand: 'Print Reception Stand Card',
     btnDownloadQr: 'Download QR Image',
     btnCopyUrl: 'Copy Client Link',
@@ -168,17 +175,28 @@ const TRANSLATIONS = {
     unnamedClient: 'No Name Specified',
     deleteConfirm: 'Are you sure you want to delete file: ',
     deleteSuccess: 'File deleted successfully',
-    uploadSuccess: 'Documents uploaded successfully and stored for 72 hours!',
+    uploadSuccess: 'Documents uploaded successfully and saved securely!',
     copied: 'Copied to clipboard! ✓',
-    expiredText: 'Expired'
+    expiredText: 'Expired',
+    // PIN Modal
+    pinModalTitle: 'Security PIN Verification 🔒',
+    pinModalDesc: 'This section is protected. Enter PIN code to access Supabase settings:',
+    pinPlaceholder: 'Enter PIN...',
+    btnSubmitPin: 'Confirm & Enter',
+    btnCancelPin: 'Cancel',
+    pinIncorrect: 'Incorrect PIN! Please try again.'
   }
 };
 
-let currentLang = localStorage.getItem('cloud_doc_lang') || 'ar';
+let isAdminMode = false;
+let currentLang = 'ar';
+let currentTheme = localStorage.getItem('cloud_doc_theme') || 'dark';
 
 // DOM Element Selectors
 const DOM = {
-  // Navigation & Language
+  // Navigation, Theme & Language
+  btnToggleTheme: document.getElementById('btn-toggle-theme'),
+  themeIcon: document.getElementById('theme-icon'),
   btnToggleLang: document.getElementById('btn-toggle-lang'),
   langCurrentLabel: document.getElementById('lang-current-label'),
   tabClient: document.getElementById('tab-client'),
@@ -243,6 +261,15 @@ const DOM = {
   previewContentBox: document.getElementById('preview-content-box'),
   btnDownloadPreview: document.getElementById('btn-download-preview'),
 
+  // PIN Verification Modal
+  modalPin: document.getElementById('modal-pin'),
+  btnClosePin: document.getElementById('btn-close-pin'),
+  formPin: document.getElementById('form-pin'),
+  inputPinCode: document.getElementById('input-pin-code'),
+  pinErrorMsg: document.getElementById('pin-error-msg'),
+  btnSubmitPin: document.getElementById('btn-submit-pin'),
+  btnCancelPin: document.getElementById('btn-cancel-pin'),
+
   // Settings Modal
   btnSettings: document.getElementById('btn-settings'),
   btnShowSchemaLink: document.getElementById('btn-show-schema-link'),
@@ -277,17 +304,23 @@ function t(key) {
 // Apply Language
 function applyLanguage(lang) {
   currentLang = lang;
-  localStorage.setItem('cloud_doc_lang', lang);
+  if (isAdminMode) {
+    localStorage.setItem('cloud_doc_admin_lang', lang);
+  } else {
+    localStorage.setItem('cloud_doc_client_lang', lang);
+  }
 
   const html = document.documentElement;
   if (lang === 'en') {
     html.setAttribute('lang', 'en');
     html.setAttribute('dir', 'ltr');
     DOM.langCurrentLabel.textContent = 'العربية';
+    document.title = 'DocCloud | Smart Vault';
   } else {
     html.setAttribute('lang', 'ar');
     html.setAttribute('dir', 'rtl');
     DOM.langCurrentLabel.textContent = 'English';
+    document.title = 'مخزن المستندات | DocCloud';
   }
 
   // Translate all [data-i18n]
@@ -315,6 +348,28 @@ function applyLanguage(lang) {
 function toggleLanguage() {
   const next = currentLang === 'ar' ? 'en' : 'ar';
   applyLanguage(next);
+}
+
+// Apply Theme (light / dark)
+function applyTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('cloud_doc_theme', theme);
+  document.documentElement.setAttribute('data-theme', theme);
+
+  if (DOM.themeIcon) {
+    DOM.themeIcon.textContent = theme === 'dark' ? '☀️' : '🌙';
+  }
+  if (DOM.btnToggleTheme) {
+    DOM.btnToggleTheme.title = theme === 'dark'
+      ? (currentLang === 'ar' ? 'التحويل للوضع الفاتح' : 'Switch to Light Mode')
+      : (currentLang === 'ar' ? 'التحويل للوضع الداكن' : 'Switch to Dark Mode');
+  }
+}
+
+// Toggle Theme
+function toggleTheme() {
+  const next = currentTheme === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
 }
 
 // Helper: Show Toast Notification
@@ -429,19 +484,24 @@ async function initApp() {
   const mode = urlParams.get('mode');
 
   if (mode === 'admin') {
-    // ADMIN MODE: Show admin tools and dashboard
+    // ADMIN MODE: Default language is English, unless user switched it
+    isAdminMode = true;
     document.body.classList.remove('mode-client');
     document.body.classList.add('mode-admin');
     switchView('dashboard');
+    currentLang = localStorage.getItem('cloud_doc_admin_lang') || 'en';
   } else {
-    // CLIENT MODE (Default): Pure client upload, completely free of admin UI
+    // CLIENT MODE (Default): Pure client upload, default language is Arabic
+    isAdminMode = false;
     document.body.classList.remove('mode-admin');
     document.body.classList.add('mode-client');
     switchView('client');
+    currentLang = localStorage.getItem('cloud_doc_client_lang') || 'ar';
   }
 
-  // Apply default language
+  // Apply default language & theme
   applyLanguage(currentLang);
+  applyTheme(currentTheme);
 
   // Update Status Banner
   updateStorageStatusBanner();
@@ -532,13 +592,13 @@ function renderClientFileCard(file) {
   const card = document.createElement('div');
   card.className = 'file-card';
   const isImage = file.mimeType.startsWith('image/');
-  const expiry = formatRemainingTime(file.expiresAt);
   const typeBadge = isImage ? t('imageType') : t('pdfType');
 
   const previewHtml = isImage
     ? `<img src="${file.url}" alt="${file.fileName}" loading="lazy" />`
     : `<div class="pdf-thumb-icon">📄</div>`;
 
+  // Sanitized client file card: completely clean of 3-day countdowns
   card.innerHTML = `
     <div class="file-card-preview" title="${t('btnPreview')}">
       ${previewHtml}
@@ -548,10 +608,8 @@ function renderClientFileCard(file) {
       <div class="file-size-tag">${formatFileSize(file.fileSize)}</div>
     </div>
     <div class="file-meta-row">
-      <span class="file-expiry-badge ${expiry.isUrgent ? 'expiring-soon' : ''}">
-        ⏱️ ${expiry.text}
-      </span>
       <span class="badge-tag">${typeBadge}</span>
+      <span class="file-date-tag">${formatDateTime(file.createdAt)}</span>
     </div>
     <div class="file-actions">
       <button class="btn btn-outline btn-preview" data-id="${file.id}">${t('btnPreview')}</button>
@@ -816,6 +874,11 @@ function openPreviewModal(file) {
 // Event Listeners
 // ==========================================================================
 function attachEventListeners() {
+  // Theme Switcher (Light / Dark)
+  if (DOM.btnToggleTheme) {
+    DOM.btnToggleTheme.addEventListener('click', toggleTheme);
+  }
+
   // Language Switcher
   DOM.btnToggleLang.addEventListener('click', toggleLanguage);
 
@@ -929,13 +992,67 @@ function attachEventListeners() {
     DOM.modalSettings.classList.remove('hidden');
   };
 
-  DOM.btnSettings.addEventListener('click', openSettings);
-  DOM.btnQuickConfig.addEventListener('click', openSettings);
+  // Security PIN (2026) Verification for Supabase Settings
+  const SECURITY_PIN = '2026';
+  let pendingPinAction = null;
+
+  const promptPinForSettings = (onSuccess) => {
+    DOM.inputPinCode.value = '';
+    DOM.inputPinCode.classList.remove('input-error');
+    DOM.pinErrorMsg.classList.add('hidden');
+    DOM.modalPin.classList.remove('hidden');
+    pendingPinAction = onSuccess;
+    setTimeout(() => DOM.inputPinCode.focus(), 100);
+  };
+
+  const handlePinSubmit = () => {
+    const entered = DOM.inputPinCode.value.trim();
+    if (entered === SECURITY_PIN) {
+      DOM.modalPin.classList.add('hidden');
+      DOM.inputPinCode.value = '';
+      DOM.inputPinCode.classList.remove('input-error');
+      DOM.pinErrorMsg.classList.add('hidden');
+      if (typeof pendingPinAction === 'function') {
+        pendingPinAction();
+        pendingPinAction = null;
+      }
+    } else {
+      DOM.inputPinCode.classList.add('input-error');
+      DOM.pinErrorMsg.classList.remove('hidden');
+      DOM.inputPinCode.focus();
+      DOM.inputPinCode.select();
+    }
+  };
+
+  const closePinModal = () => {
+    DOM.modalPin.classList.add('hidden');
+    DOM.inputPinCode.value = '';
+    DOM.inputPinCode.classList.remove('input-error');
+    DOM.pinErrorMsg.classList.add('hidden');
+    pendingPinAction = null;
+  };
+
+  // Protected settings triggers (Requires PIN 2026)
+  DOM.btnSettings.addEventListener('click', () => promptPinForSettings(openSettings));
+  DOM.btnQuickConfig.addEventListener('click', () => promptPinForSettings(openSettings));
   DOM.btnShowSchemaLink.addEventListener('click', (e) => {
     e.preventDefault();
-    openSettings();
-    DOM.tabSubSql.click();
+    promptPinForSettings(() => {
+      openSettings();
+      DOM.tabSubSql.click();
+    });
   });
+
+  // PIN Modal Event Listeners
+  DOM.btnSubmitPin.addEventListener('click', handlePinSubmit);
+  DOM.inputPinCode.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handlePinSubmit();
+    }
+  });
+  DOM.btnCancelPin.addEventListener('click', closePinModal);
+  DOM.btnClosePin.addEventListener('click', closePinModal);
 
   DOM.btnCloseSettings.addEventListener('click', () => DOM.modalSettings.classList.add('hidden'));
 
@@ -991,6 +1108,7 @@ function attachEventListeners() {
   window.addEventListener('click', (e) => {
     if (e.target === DOM.modalQr) DOM.modalQr.classList.add('hidden');
     if (e.target === DOM.modalPreview) DOM.modalPreview.classList.add('hidden');
+    if (e.target === DOM.modalPin) closePinModal();
     if (e.target === DOM.modalSettings) DOM.modalSettings.classList.add('hidden');
   });
 }

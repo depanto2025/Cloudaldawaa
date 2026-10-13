@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>بوابة رفع المستندات الذكية | Smart Cloud Docs</title>
+  <title>مخزن المستندات | DocCloud</title>
   
   <!-- Google Fonts: Cairo & Outfit -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -32,16 +32,21 @@
           </div>
           <div class="brand-text">
             <h1 class="brand-title">
-              <span data-i18n="appTitle">سحاب دوكس</span>
+              <span data-i18n="appTitle">مخزن المستندات</span>
               <span class="badge-tag" data-i18n="badgeStorage">سوبر بيز</span>
             </h1>
-            <p class="brand-subtitle admin-only" data-i18n="appSubtitle">نظام رفع المستندات والتأمين الذكي والمؤقت</p>
+            <p class="brand-subtitle admin-only" data-i18n="appSubtitle">مخزن المستندات السحابي الذكي</p>
           </div>
         </div>
 
-        <!-- Header Actions: Language Switcher + Admin Tools (Only visible in Admin Mode) -->
+        <!-- Header Actions: Theme & Language Switcher + Admin Tools -->
         <div class="header-actions">
           
+          <!-- Theme Switcher Button (Light / Dark) -->
+          <button id="btn-toggle-theme" class="btn btn-theme" title="الوضع الفاتح / الداكن (Theme)">
+            <span id="theme-icon" class="theme-icon">☀️</span>
+          </button>
+
           <!-- Language Switcher Button (Available for both Client & Admin) -->
           <button id="btn-toggle-lang" class="btn btn-lang" title="تغيير اللغة / Change Language">
             <span class="lang-icon">🌐</span>
@@ -395,9 +400,9 @@
     <!-- Footer -->
     <footer class="main-footer">
       <div class="footer-inner">
-        <span data-i18n="footerCopy">سحاب دوكس &copy; 2026 - نظام الرفع السريع لشركات التأمين والخدمات</span>
-        <span class="divider">•</span>
-        <span data-i18n="footerTtl">صلاحية المستندات: 3 أيام (72 ساعة)</span>
+        <span data-i18n="footerCopy">مخزن المستندات &copy; 2026 - نظام الرفع السريع لشركات التأمين والخدمات</span>
+        <span class="divider admin-only">•</span>
+        <span class="admin-only" data-i18n="footerTtl">صلاحية المستندات: 3 أيام (72 ساعة)</span>
         <span class="divider admin-only">•</span>
         <a href="#database-schema" id="btn-show-schema-link" class="footer-link admin-only" data-i18n="footerSqlLink">كود إعداد Supabase SQL ⚡</a>
       </div>
@@ -449,7 +454,7 @@
             </div>
             <div class="qr-step">
               <span class="step-num">3</span>
-              <span data-i18n="qrStep3">تصلنا المستندات فوراً وتُحفظ بأمان لمدة 3 أيام</span>
+              <span data-i18n="qrStep3">تصلنا المستندات فوراً وتُحفظ بأمان في النظام</span>
             </div>
           </div>
 
@@ -515,6 +520,43 @@
           </svg>
           <span data-i18n="btnDownloadFile">تحميل الملف إلى جهازك</span>
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: PIN VERIFICATION MODAL (حماية إعدادات سوبابيز برقم سري 2026) -->
+  <!-- ======================================================== -->
+  <div id="modal-pin" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-dialog pin-modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="pinModalTitle">التحقق من رقم الحماية 🔒</h3>
+        <button id="btn-close-pin" class="modal-close-btn" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-desc" data-i18n="pinModalDesc">
+          هذا القسم محمي برقم حماية. أدخل الرمز للمتابعة إلى إعدادات Supabase:
+        </p>
+        <form id="form-pin" onsubmit="return false;" style="margin-top: 16px;">
+          <div class="form-group">
+            <input 
+              type="password" 
+              id="input-pin-code" 
+              class="text-input pin-input" 
+              placeholder="••••" 
+              maxlength="10" 
+              autocomplete="off"
+              dir="ltr"
+            >
+          </div>
+          <div id="pin-error-msg" class="pin-error-text hidden" data-i18n="pinIncorrect">
+            رقم الحماية غير صحيح! حاول مرة أخرى
+          </div>
+          <div class="pin-actions">
+            <button type="button" id="btn-submit-pin" class="btn btn-orange" data-i18n="btnSubmitPin">تأكيد ودخول</button>
+            <button type="button" id="btn-cancel-pin" class="btn btn-outline" data-i18n="btnCancelPin">إلغاء</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
