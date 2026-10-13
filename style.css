@@ -1390,6 +1390,55 @@ body {
   box-shadow: 0 4px 12px rgba(220, 38, 38, 0.35);
 }
 
+/* Spinner Animation & Interactive Download States */
+@keyframes spin-fast {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-icon {
+  animation: spin-fast 0.75s linear infinite;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Button Loading & Disabled States */
+.btn-action-icon:disabled,
+.btn-session-download-all:disabled {
+  opacity: 0.9 !important;
+  cursor: wait !important;
+  pointer-events: none !important;
+}
+
+.btn-action-icon.is-downloading {
+  background: rgba(255, 107, 0, 0.25) !important;
+  color: var(--orange-primary) !important;
+  border-color: var(--orange-primary) !important;
+  box-shadow: 0 0 12px rgba(255, 107, 0, 0.45) !important;
+}
+
+.btn-action-icon.is-success {
+  background: rgba(16, 185, 129, 0.25) !important;
+  color: #10B981 !important;
+  border-color: #10B981 !important;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.45) !important;
+}
+
+.btn-session-download-all.is-downloading {
+  background: linear-gradient(135deg, #F59E0B, #D97706) !important;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.5) !important;
+  cursor: wait !important;
+}
+
+.btn-session-download-all.is-success {
+  background: linear-gradient(135deg, #10B981, #059669) !important;
+  box-shadow: 0 0 16px rgba(16, 185, 129, 0.5) !important;
+}
+
 /* ==========================================================================
    MODAL DIALOGS
    ========================================================================== */
@@ -2550,4 +2599,16 @@ html[data-theme="light"] .btn-action-delete:hover {
   background: #DC2626;
   color: #FFFFFF;
   border-color: #DC2626;
+}
+
+html[data-theme="light"] .btn-action-icon.is-downloading {
+  background: #FFF7ED !important;
+  color: #EA580C !important;
+  border-color: #FDBA74 !important;
+}
+
+html[data-theme="light"] .btn-action-icon.is-success {
+  background: #ECFDF5 !important;
+  color: #059669 !important;
+  border-color: #A7F3D0 !important;
 }

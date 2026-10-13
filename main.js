@@ -723,8 +723,23 @@ async function refreshAdminDashboard() {
   renderAdminFilesTable();
 }
 
-// Helper: Download a single file safely using Blob or direct link
-async function downloadSingleFile(file) {
+// Helper: Download a single file safely using Blob or direct link with loading state
+async function downloadSingleFile(file, triggerBtn) {
+  if (triggerBtn && triggerBtn.disabled) return;
+
+  let originalHtml = '';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.classList.add('is-downloading');
+    originalHtml = triggerBtn.innerHTML;
+    triggerBtn.innerHTML = `
+      <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+      </svg>
+    `;
+    triggerBtn.title = currentLang === 'ar' ? 'جاري التحميل...' : 'Downloading...';
+  }
+
   try {
     const response = await fetch(file.url);
     if (!response.ok) throw new Error('Fetch failed');
@@ -737,7 +752,24 @@ async function downloadSingleFile(file) {
     a.click();
     document.body.removeChild(a);
     setTimeout(() => URL.revokeObjectURL(blobUrl), 15000);
+
+    if (triggerBtn) {
+      triggerBtn.classList.remove('is-downloading');
+      triggerBtn.classList.add('is-success');
+      triggerBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      `;
+      setTimeout(() => {
+        triggerBtn.classList.remove('is-success');
+        triggerBtn.innerHTML = originalHtml;
+        triggerBtn.disabled = false;
+        triggerBtn.title = t('btnDownloadFile');
+      }, 1500);
+    }
   } catch {
+    // Fallback directly to anchor click
     const a = document.createElement('a');
     a.href = file.url;
     a.download = file.fileName;
@@ -745,25 +777,70 @@ async function downloadSingleFile(file) {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
+
+    if (triggerBtn) {
+      triggerBtn.classList.remove('is-downloading');
+      triggerBtn.innerHTML = originalHtml;
+      triggerBtn.disabled = false;
+      triggerBtn.title = t('btnDownloadFile');
+    }
   }
 }
 
-// Helper: Download all files for a specific client session
-async function downloadSessionFiles(files, clientLabel) {
+// Helper: Download all files for a specific client session with multi-file loading state
+async function downloadSessionFiles(files, clientLabel, triggerBtn) {
   if (!files || files.length === 0) return;
+  if (triggerBtn && triggerBtn.disabled) return;
+
   const label = clientLabel || (currentLang === 'ar' ? 'العميل' : 'Client');
   showToast(
     currentLang === 'ar'
-      ? `جاري تحميل ${files.length} ملفات لـ (${label})...`
-      : `Downloading ${files.length} files for (${label})...`,
+      ? `جاري بدء تحميل ${files.length} ملفات لـ (${label})...`
+      : `Starting download of ${files.length} files for (${label})...`,
     'info'
   );
 
+  let originalHtml = '';
+  if (triggerBtn) {
+    triggerBtn.disabled = true;
+    triggerBtn.classList.add('is-downloading');
+    originalHtml = triggerBtn.innerHTML;
+  }
+
   for (let i = 0; i < files.length; i++) {
+    if (triggerBtn) {
+      const progressText = currentLang === 'ar'
+        ? `جاري التحميل (${i + 1}/${files.length})...`
+        : `Downloading (${i + 1}/${files.length})...`;
+      triggerBtn.innerHTML = `
+        <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+        <span>${progressText}</span>
+      `;
+    }
+
     await downloadSingleFile(files[i]);
     if (i < files.length - 1) {
-      await new Promise(r => setTimeout(r, 350));
+      await new Promise(r => setTimeout(r, 450));
     }
+  }
+
+  if (triggerBtn) {
+    triggerBtn.classList.remove('is-downloading');
+    triggerBtn.classList.add('is-success');
+    triggerBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </svg>
+      <span>${currentLang === 'ar' ? 'تم التحميل بنجاح ✓' : 'Downloaded ✓'}</span>
+    `;
+
+    setTimeout(() => {
+      triggerBtn.classList.remove('is-success');
+      triggerBtn.innerHTML = originalHtml;
+      triggerBtn.disabled = false;
+    }, 2000);
   }
 }
 
@@ -1022,8 +1099,8 @@ function renderAdminFilesTable() {
       `;
 
       // Download all files event
-      sessionTr.querySelector('.btn-session-download-all').addEventListener('click', () => {
-        downloadSessionFiles(session.files, clientDisplayName);
+      sessionTr.querySelector('.btn-session-download-all').addEventListener('click', (e) => {
+        downloadSessionFiles(session.files, clientDisplayName, e.currentTarget);
       });
 
       DOM.adminTableBody.appendChild(sessionTr);
@@ -1095,7 +1172,7 @@ function renderAdminFilesTable() {
         // Row Events
         fileTr.querySelector('.table-thumb-cell').addEventListener('click', () => openPreviewModal(file));
         fileTr.querySelector('.btn-action-preview').addEventListener('click', () => openPreviewModal(file));
-        fileTr.querySelector('.btn-action-download').addEventListener('click', () => downloadSingleFile(file));
+        fileTr.querySelector('.btn-action-download').addEventListener('click', (e) => downloadSingleFile(file, e.currentTarget));
         fileTr.querySelector('.btn-action-delete').addEventListener('click', async () => {
           if (confirm(`${t('deleteConfirm')}${file.fileName}?`)) {
             await storageManager.deleteFile(file.id);
