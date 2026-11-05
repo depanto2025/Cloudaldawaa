@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 import confetti from 'canvas-confetti';
 import JSZip from 'jszip';
-import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS, getRetentionSettings, saveRetentionSettings } from './storage.js';
+import { storageManager, getOrCreateDeviceId, THREE_DAYS_MS, getRetentionSettings, saveRetentionSettings, getClientBranch, getAdminBranch, setAdminBranch } from './storage.js';
 
 // Multilingual Dictionary (Arabic & English)
 const TRANSLATIONS = {
@@ -12,6 +12,22 @@ const TRANSLATIONS = {
     tabClient: 'واجهة العميل',
     tabDashboard: 'الداشبورد (الإدارة)',
     btnClientBarcode: 'باركود العميل',
+    branchLabel: 'صيدلية فرع:',
+    clientBranchWelcome: 'بوابة استقبال المستندات المباشرة',
+    clientBranchTitle: 'صيدلية فرع:',
+    qrPharmacyName: 'صيدلية الدواء',
+    qrBranchPrefix: 'فرع',
+    qrBranchWord: 'فرع',
+    branchModalTitle: 'تبديل فرع الصيدلية 🏥',
+    branchModalDesc: 'اختر الفرع الذي ترغب في إدارة مستنداته، أو أدخل رقم فرع جديد. سيتم عرض مستندات هذا الفرع وتوليد باركوده الخاص تلقائياً:',
+    quickBranchesLabel: 'فروع سريعة:',
+    inputBranchCodeLabel: 'رقم أو رمز الفرع:',
+    btnConfirmBranch: 'تأكيد ودخول الفرع',
+    btnCancel: 'إلغاء',
+    branchSwitched: 'تم الانتقال بنجاح إلى صيدلية فرع ',
+    filesUploadedOnDay: 'سجل المستندات المرفوعة في هذا اليوم',
+    previousUploadsDivider: 'سجل الرفوعات السابقة',
+    latestClientPrompt: 'تم الرفع للتو • جاهز للمعاينة والطباعة الفورية',
     retentionTitle: 'التحكم في فترة حفظ الملفات حسب النوع:',
     retentionDesc: 'حدد عدد أيام بقاء الصور والـ PDF قبل الحذف التلقائي من السيرفر',
     labelDaysImages: 'مدة الصور (أيام):',
@@ -116,6 +132,22 @@ const TRANSLATIONS = {
     tabClient: 'Client Portal',
     tabDashboard: 'Admin Dashboard',
     btnClientBarcode: 'Client QR Code',
+    branchLabel: 'Branch:',
+    clientBranchWelcome: 'Direct Document Upload Portal',
+    clientBranchTitle: 'Pharmacy Branch:',
+    qrPharmacyName: 'Al-Dawaa Pharmacy',
+    qrBranchPrefix: 'Branch',
+    qrBranchWord: 'Branch',
+    branchModalTitle: 'Switch Pharmacy Branch 🏥',
+    branchModalDesc: 'Select the pharmacy branch to manage or enter a new branch number. Documents and QR code will update automatically:',
+    quickBranchesLabel: 'Quick Branches:',
+    inputBranchCodeLabel: 'Branch Code / Number:',
+    btnConfirmBranch: 'Confirm & Switch Branch',
+    btnCancel: 'Cancel',
+    branchSwitched: 'Switched to Pharmacy Branch ',
+    filesUploadedOnDay: 'Documents uploaded on this day',
+    previousUploadsDivider: 'Previous Client Uploads',
+    latestClientPrompt: 'Just uploaded • Ready for instant preview & printing',
     retentionTitle: 'File Retention Period by Type:',
     retentionDesc: 'Define how many days images and PDFs stay before automatic purge',
     labelDaysImages: 'Images Duration (Days):',
@@ -314,6 +346,17 @@ const DOM = {
   btnResetToDemo: document.getElementById('btn-reset-to-demo'),
   btnCopySql: document.getElementById('btn-copy-sql'),
   sqlSchemaCode: document.getElementById('sql-schema-code'),
+
+  // Branch Switcher Modal & Indicators
+  btnSwitchBranch: document.getElementById('btn-switch-branch'),
+  currentAdminBranchLabel: document.getElementById('current-admin-branch-label'),
+  clientBranchBadge: document.getElementById('client-branch-badge'),
+  qrStandBranchNumber: document.getElementById('qr-stand-branch-number'),
+  modalBranch: document.getElementById('modal-branch'),
+  btnCloseBranch: document.getElementById('btn-close-branch'),
+  btnCancelBranch: document.getElementById('btn-cancel-branch'),
+  btnSubmitBranch: document.getElementById('btn-submit-branch'),
+  inputBranchCode: document.getElementById('input-branch-code'),
 
   // Toast
   toastContainer: document.getElementById('toast-container')
@@ -532,6 +575,9 @@ async function initApp() {
   applyLanguage(currentLang);
   applyTheme(currentTheme);
 
+  // Update Branch Display Badges
+  updateBranchBadges();
+
   // Update Status Banner
   updateStorageStatusBanner();
 
@@ -565,6 +611,7 @@ function switchView(target) {
     DOM.tabClient.setAttribute('aria-selected', 'false');
     DOM.viewDashboard.classList.add('active');
     DOM.viewClient.classList.remove('active');
+    updateBranchBadges();
     refreshAdminDashboard();
   }
 }
@@ -587,11 +634,70 @@ function updateStorageStatusBanner() {
   }
 }
 
+// Update Branch Badges across UI
+function updateBranchBadges() {
+  const adminBranch = getAdminBranch();
+  const clientBranch = getClientBranch();
+
+  if (DOM.currentAdminBranchLabel) {
+    DOM.currentAdminBranchLabel.textContent = adminBranch;
+  }
+  if (DOM.clientBranchBadge) {
+    DOM.clientBranchBadge.textContent = clientBranch;
+  }
+  if (DOM.qrStandBranchNumber) {
+    DOM.qrStandBranchNumber.textContent = adminBranch;
+  }
+  if (DOM.inputBranchCode) {
+    DOM.inputBranchCode.value = adminBranch;
+  }
+
+  const quickBtns = document.querySelectorAll('.btn-branch-chip');
+  quickBtns.forEach((btn) => {
+    const b = btn.getAttribute('data-branch');
+    if (b === adminBranch) {
+      btn.classList.add('active');
+    } else {
+      btn.classList.remove('active');
+    }
+  });
+}
+
+// Branch Switcher Modal handlers
+function openBranchModal() {
+  const current = getAdminBranch();
+  if (DOM.inputBranchCode) {
+    DOM.inputBranchCode.value = current;
+  }
+  updateBranchBadges();
+  DOM.modalBranch.classList.remove('hidden');
+  if (DOM.inputBranchCode) {
+    DOM.inputBranchCode.focus();
+    DOM.inputBranchCode.select();
+  }
+}
+
+function closeBranchModal() {
+  DOM.modalBranch.classList.add('hidden');
+}
+
+async function handleBranchSubmit(branchParam = null) {
+  const code = (branchParam || (DOM.inputBranchCode ? DOM.inputBranchCode.value : '66')).trim();
+  if (!code) return;
+  setAdminBranch(code);
+  updateBranchBadges();
+  closeBranchModal();
+  await refreshAdminDashboard();
+  await setupQrCode();
+  showToast(`${t('branchSwitched')} (${code}) ✓`, 'success');
+}
+
 // ==========================================================================
 // Client Portal Operations
 // ==========================================================================
 async function refreshClientFiles() {
-  currentClientFiles = await storageManager.getClientFiles();
+  const branch = getClientBranch();
+  currentClientFiles = await storageManager.getClientFiles(branch);
   const countWord = currentLang === 'ar' ? 'مستندات' : 'files';
   DOM.clientFilesCount.textContent = `${currentClientFiles.length} ${countWord}`;
   
@@ -670,6 +776,7 @@ async function handleFilesUpload(filesList) {
 
   const files = Array.from(filesList);
   const clientName = DOM.inputClientName ? DOM.inputClientName.value.trim() : '';
+  const clientBranch = getClientBranch();
 
   DOM.uploadProgressContainer.classList.remove('hidden');
   DOM.progressPercent.textContent = '0%';
@@ -686,7 +793,7 @@ async function handleFilesUpload(filesList) {
         const overallPercent = Math.round(((i + percent / 100) / files.length) * 100);
         DOM.progressPercent.textContent = `${overallPercent}%`;
         DOM.progressBarFill.style.width = `${overallPercent}%`;
-      });
+      }, clientBranch);
       uploadedCount++;
     } catch (err) {
       console.error('فشل رفع الملف:', err);
@@ -804,7 +911,8 @@ function setupRealtimeLiveSync() {
     if (document.hidden) return;
 
     try {
-      const activeFiles = await storageManager.getAllActiveFiles();
+      const currentBranch = getAdminBranch();
+      const activeFiles = await storageManager.getAllActiveFiles(currentBranch);
       const newSig = computeFilesSignature(activeFiles);
 
       if (lastFilesSignature && newSig !== lastFilesSignature) {
@@ -840,7 +948,8 @@ function setupRealtimeLiveSync() {
 // Admin Dashboard Operations
 // ==========================================================================
 async function refreshAdminDashboard() {
-  allAdminFiles = await storageManager.getAllActiveFiles();
+  const currentBranch = getAdminBranch();
+  allAdminFiles = await storageManager.getAllActiveFiles(currentBranch);
   DOM.badgeTotalFilesNav.textContent = allAdminFiles.length;
   lastFilesSignature = computeFilesSignature(allAdminFiles);
 
@@ -1517,23 +1626,35 @@ function renderAdminFilesTable() {
   });
 
   // 2. Iterate each Date Group
-  dateGroups.forEach((group) => {
-    // Render Date Group Divider Row
+  dateGroups.forEach((group, groupIdx) => {
+    // Render Date Group Divider Row (Prominent Visual Separation for Each Day)
     const dateTr = document.createElement('tr');
-    dateTr.className = 'tr-date-group';
+    dateTr.className = `tr-date-group ${groupIdx > 0 ? 'is-subsequent-date' : ''}`;
     dateTr.innerHTML = `
       <td colspan="7">
         <div class="date-group-bar">
           <div class="date-group-title">
-            <svg class="date-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-              <line x1="16" y1="2" x2="16" y2="6"></line>
-              <line x1="8" y1="2" x2="8" y2="6"></line>
-              <line x1="3" y1="10" x2="21" y2="10"></line>
-            </svg>
-            <span class="date-group-text">${formatDateGroupTitle(group.dateKey, group.sampleTimestamp)}</span>
+            <div class="date-calendar-badge">
+              <svg class="date-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                <line x1="16" y1="2" x2="16" y2="6"></line>
+                <line x1="8" y1="2" x2="8" y2="6"></line>
+                <line x1="3" y1="10" x2="21" y2="10"></line>
+              </svg>
+            </div>
+            <div class="date-group-headings">
+              <span class="date-group-text">${formatDateGroupTitle(group.dateKey, group.sampleTimestamp)}</span>
+              <span class="date-group-subtext">${t('filesUploadedOnDay')}</span>
+            </div>
           </div>
-          <span class="date-group-badge">${group.files.length} ${t('dateGroupFilesCount')}</span>
+          <div class="date-group-meta">
+            <span class="date-group-badge">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              </svg>
+              ${group.files.length} ${t('dateGroupFilesCount')}
+            </span>
+          </div>
         </div>
       </td>
     `;
@@ -1547,91 +1668,101 @@ function renderAdminFilesTable() {
 
       // Render Client Session Header Row
       const sessionTr = document.createElement('tr');
-      sessionTr.className = `tr-client-session ${isLatestClient ? 'is-latest-client' : ''}`;
+      sessionTr.className = `tr-client-session ${isLatestClient ? 'is-latest-client is-latest-client-block' : ''}`;
 
       const clientDisplayName = session.clientName ? session.clientName : t('unnamedClient');
 
       sessionTr.innerHTML = `
         <td colspan="7">
-          <div class="client-session-bar">
-            <div class="session-left-group">
-              <div class="session-client-badge">
-                <svg class="session-user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <span class="session-client-name" dir="auto">${clientDisplayName}</span>
-                <span class="device-chip">${session.deviceId}</span>
-              </div>
-
-              ${isLatestClient ? `
-                <div class="latest-client-chip" title="${currentLang === 'ar' ? 'أحدث عميل رفع مستندات' : 'Most Recent Client'}">
+          <div class="client-session-bar ${isLatestClient ? 'latest-client-bar-glow' : ''}">
+            ${isLatestClient ? `
+              <div class="latest-client-top-banner">
+                <div class="latest-pulse-box">
+                  <span class="pulse-indicator-ring"></span>
                   <span class="pulse-indicator"></span>
-                  <span>${t('latestClientBadge')}</span>
                 </div>
-              ` : ''}
+                <span class="latest-banner-text">${t('latestClientBadge')}</span>
+                <span class="latest-banner-sub">${t('latestClientPrompt')}</span>
+              </div>
+            ` : ''}
 
-              <div class="session-time-chip">
-                <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                <span>${formatSessionTime(session.latestTimestamp)}</span>
+            <div class="client-session-main-row">
+              <div class="session-left-group">
+                <div class="session-client-badge">
+                  <div class="session-user-avatar">
+                    <svg class="session-user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                  </div>
+                  <div class="session-client-info">
+                    <span class="session-client-name" dir="auto">${clientDisplayName}</span>
+                    <span class="device-chip">${session.deviceId}</span>
+                  </div>
+                </div>
+
+                <div class="session-time-chip">
+                  <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                  </svg>
+                  <span>${formatSessionTime(session.latestTimestamp)}</span>
+                </div>
+
+                <div class="session-summary-chip">
+                  <svg class="session-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                  </svg>
+                  <span>${formatSessionSummary(session.files)}</span>
+                </div>
               </div>
 
-              <div class="session-summary-chip">
-                <svg class="session-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <span>${formatSessionSummary(session.files)}</span>
+              <div class="session-actions-group">
+                ${session.files.length === 1 ? `
+                  <button class="btn btn-session-download-single" title="${t('btnDownloadSingle')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>${t('btnDownloadSingle')} (1)</span>
+                  </button>
+                  <button class="btn btn-session-print" title="${t('btnPrintFile')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>${t('btnPrint')}</span>
+                  </button>
+                ` : `
+                  <button class="btn btn-session-download-zip" title="${t('btnDownloadZip')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>${t('btnDownloadZip')} (${session.files.length})</span>
+                  </button>
+                  <button class="btn btn-session-download-separate" title="${t('btnDownloadSeparate')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                      <polyline points="14 2 14 8 20 8"></polyline>
+                      <line x1="12" y1="18" x2="12" y2="12"></line>
+                      <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                    <span>${t('btnDownloadSeparate')}</span>
+                  </button>
+                  <button class="btn btn-session-print" title="${t('btnPrintAll')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>${t('btnPrintAll')} (${session.files.length})</span>
+                  </button>
+                `}
               </div>
-            </div>
-
-            <div class="session-actions-group">
-              ${session.files.length === 1 ? `
-                <button class="btn btn-session-download-single" title="${t('btnDownloadSingle')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  <span>${t('btnDownloadSingle')} (1)</span>
-                </button>
-                <button class="btn btn-session-print" title="${t('btnPrintFile')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
-                  <span>${t('btnPrint')}</span>
-                </button>
-              ` : `
-                <button class="btn btn-session-download-zip" title="${t('btnDownloadZip')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  <span>${t('btnDownloadZip')} (${session.files.length})</span>
-                </button>
-                <button class="btn btn-session-download-separate" title="${t('btnDownloadSeparate')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                  </svg>
-                  <span>${t('btnDownloadSeparate')}</span>
-                </button>
-                <button class="btn btn-session-print" title="${t('btnPrintAll')}">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                    <rect x="6" y="14" width="12" height="8"></rect>
-                  </svg>
-                  <span>${t('btnPrintAll')} (${session.files.length})</span>
-                </button>
-              `}
             </div>
           </div>
         </td>
@@ -1669,7 +1800,7 @@ function renderAdminFilesTable() {
 
       DOM.adminTableBody.appendChild(sessionTr);
 
-      // 4. Render files belonging to this session
+      // 4. Render files belonging to this session with ACTION BUTTONS DIRECTLY UNDERNEATH
       session.files.forEach((file) => {
         const fileTr = document.createElement('tr');
         fileTr.className = `tr-session-member ${isLatestClient ? 'is-latest-client-member' : ''}`;
@@ -1682,60 +1813,63 @@ function renderAdminFilesTable() {
           : `<div class="table-thumb-cell" title="${t('btnPreview')}"><span style="font-size:1.8rem">📄</span></div>`;
 
         fileTr.innerHTML = `
-          <td>${thumbHtml}</td>
-          <td>
-            <div class="table-file-info">
-              <span class="table-filename" title="${file.fileName}" dir="auto">${file.fileName}</span>
-              <span class="table-filetype">${file.mimeType}</span>
-            </div>
-          </td>
-          <td>
-            <div class="table-device-tag">
-              <span class="device-chip">${file.deviceId}</span>
-              ${file.clientName ? `<span class="client-name-tag" dir="auto">👤 ${file.clientName}</span>` : `<span class="client-name-tag" style="color:var(--text-dim)">${t('unnamedClient')}</span>`}
-            </div>
-          </td>
-          <td>
-            <span class="table-time-text">${formatDateTime(file.createdAt)}</span>
-          </td>
-          <td>
-            <span class="file-expiry-badge ${expiry.isUrgent ? 'expiring-soon' : ''}">
-              ${expiry.text}
-            </span>
-          </td>
-          <td>
-            <span class="file-size-tag">${formatFileSize(file.fileSize)}</span>
-          </td>
-          <td>
-            <div class="row-actions-wrap">
-              <button class="btn-action-icon btn-action-preview" title="${t('btnPreview')}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-              </button>
-              <button class="btn-action-icon btn-action-print" title="${t('btnPrintFile')}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="6 9 6 2 18 2 18 9"></polyline>
-                  <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
-                  <rect x="6" y="14" width="12" height="8"></rect>
-                </svg>
-              </button>
-              <a href="${getDirectDownloadUrl(file)}" download="${file.fileName}" class="btn-action-icon btn-action-download" title="${t('btnDownloadFile')}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-              </a>
-              <button class="btn-action-icon btn-action-delete" title="${t('btnDelete')}">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="3 6 5 6 21 6"></polyline>
-                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                  <line x1="10" y1="11" x2="10" y2="17"></line>
-                  <line x1="14" y1="11" x2="14" y2="17"></line>
-                </svg>
-              </button>
+          <td colspan="7">
+            <div class="file-card-box">
+              <div class="file-card-main-row">
+                <div class="file-card-thumb-wrap" title="${t('btnPreview')}">
+                  ${thumbHtml}
+                </div>
+                <div class="file-card-content">
+                  <div class="file-card-title-row">
+                    <span class="file-card-filename" title="${file.fileName}" dir="auto">${file.fileName}</span>
+                  </div>
+                  <div class="file-card-meta-chips">
+                    <span class="meta-chip chip-type">${isImage ? '🖼️ ' + t('imageType') : '📄 ' + t('pdfType')}</span>
+                    <span class="meta-chip chip-size">💾 ${formatFileSize(file.fileSize)}</span>
+                    <span class="meta-chip chip-device">👤 ${file.clientName ? file.clientName : t('unnamedClient')} (${file.deviceId})</span>
+                    <span class="meta-chip chip-time">🕒 ${formatDateTime(file.createdAt)}</span>
+                    <span class="meta-chip file-expiry-badge ${expiry.isUrgent ? 'expiring-soon' : ''}">⏳ ${expiry.text}</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action buttons placed directly UNDERNEATH the file info -->
+              <div class="file-card-actions-row">
+                <div class="file-actions-btn-group">
+                  <button class="btn btn-doc-action btn-action-preview" title="${t('btnPreview')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <span>${t('btnPreview')}</span>
+                  </button>
+                  <button class="btn btn-doc-action btn-action-print" title="${t('btnPrintFile')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                      <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                      <rect x="6" y="14" width="12" height="8"></rect>
+                    </svg>
+                    <span>${t('btnPrint')}</span>
+                  </button>
+                  <a href="${getDirectDownloadUrl(file)}" download="${file.fileName}" class="btn btn-doc-action btn-action-download" title="${t('btnDownloadFile')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                      <polyline points="7 10 12 15 17 10"></polyline>
+                      <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                    <span>${t('btnDownloadSingle')}</span>
+                  </a>
+                  <button class="btn btn-doc-action btn-action-delete" title="${t('btnDelete')}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"></polyline>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                      <line x1="10" y1="11" x2="10" y2="17"></line>
+                      <line x1="14" y1="11" x2="14" y2="17"></line>
+                    </svg>
+                    <span>${t('btnDelete')}</span>
+                  </button>
+                </div>
+              </div>
             </div>
           </td>
         `;
@@ -1756,6 +1890,7 @@ function renderAdminFilesTable() {
             <svg class="spin-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
               <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
             </svg>
+            <span>...</span>
           `;
           setTimeout(() => {
             btn.classList.remove('is-downloading');
@@ -1764,6 +1899,7 @@ function renderAdminFilesTable() {
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="20 6 9 17 4 12"></polyline>
               </svg>
+              <span>${currentLang === 'ar' ? 'تم ✓' : 'Done ✓'}</span>
             `;
             setTimeout(() => {
               btn.classList.remove('is-success');
@@ -1782,6 +1918,25 @@ function renderAdminFilesTable() {
 
         DOM.adminTableBody.appendChild(fileTr);
       });
+
+      // If this session was the Latest Client, add an explicit visual divider separating it from older clients
+      if (isLatestClient) {
+        const breakTr = document.createElement('tr');
+        breakTr.className = 'tr-latest-client-divider';
+        breakTr.innerHTML = `
+          <td colspan="7">
+            <div class="latest-client-gap-break">
+              <div class="gap-line"></div>
+              <div class="gap-pill">
+                <span class="gap-icon">⬇</span>
+                <span>${t('previousUploadsDivider')}</span>
+              </div>
+              <div class="gap-line"></div>
+            </div>
+          </td>
+        `;
+        DOM.adminTableBody.appendChild(breakTr);
+      }
     });
   });
 }
@@ -1792,10 +1947,14 @@ function renderAdminFilesTable() {
 async function setupQrCode() {
   const currentOrigin = window.location.origin;
   const currentPath = window.location.pathname;
-  // QR points specifically to the clean client portal
-  const targetUrl = `${currentOrigin}${currentPath}`;
+  const activeBranch = getAdminBranch();
+  // QR points specifically to the clean client portal for this specific branch
+  const targetUrl = `${currentOrigin}${currentPath}?branch=${encodeURIComponent(activeBranch)}`;
 
   DOM.qrTargetUrlLabel.textContent = targetUrl;
+  if (DOM.qrStandBranchNumber) {
+    DOM.qrStandBranchNumber.textContent = activeBranch;
+  }
 
   try {
     qrDataUrl = await QRCode.toDataURL(targetUrl, {
@@ -1963,6 +2122,38 @@ function attachEventListeners() {
       }
     });
   }
+
+  // Pharmacy Branch Switcher Modal
+  if (DOM.btnSwitchBranch) {
+    DOM.btnSwitchBranch.addEventListener('click', openBranchModal);
+  }
+  if (DOM.btnCloseBranch) {
+    DOM.btnCloseBranch.addEventListener('click', closeBranchModal);
+  }
+  if (DOM.btnCancelBranch) {
+    DOM.btnCancelBranch.addEventListener('click', closeBranchModal);
+  }
+  if (DOM.btnSubmitBranch) {
+    DOM.btnSubmitBranch.addEventListener('click', () => handleBranchSubmit());
+  }
+  if (DOM.inputBranchCode) {
+    DOM.inputBranchCode.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleBranchSubmit();
+      }
+    });
+  }
+
+  // Quick Branch buttons
+  const quickBranchBtns = document.querySelectorAll('.btn-branch-chip');
+  quickBranchBtns.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const branchVal = btn.getAttribute('data-branch');
+      if (DOM.inputBranchCode) DOM.inputBranchCode.value = branchVal;
+      handleBranchSubmit(branchVal);
+    });
+  });
 
   // Settings Modal
   const openSettings = () => {

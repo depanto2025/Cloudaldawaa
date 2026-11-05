@@ -7,7 +7,9 @@ const STORAGE_KEYS = {
   SUPABASE_ANON: 'cloud_doc_supabase_anon',
   SUPABASE_BUCKET: 'cloud_doc_supabase_bucket',
   LOCAL_FILES: 'cloud_doc_local_files_v1',
-  RETENTION_SETTINGS: 'cloud_doc_retention_days'
+  RETENTION_SETTINGS: 'cloud_doc_retention_days',
+  ADMIN_BRANCH: 'cloud_doc_admin_branch',
+  CLIENT_BRANCH: 'cloud_doc_client_branch'
 };
 
 // Default Retention in days per type
@@ -194,8 +196,49 @@ class CloudStorageManager {
     };
   }
 
+  // Branch / Pharmacy Multi-Tenancy helpers
+  getClientBranch() {
+    try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchParam = urlParams.get('branch') || urlParams.get('b') || urlParams.get('pharmacy');
+        if (branchParam) {
+          const clean = branchParam.trim();
+          localStorage.setItem(STORAGE_KEYS.CLIENT_BRANCH, clean);
+          return clean;
+        }
+        return localStorage.getItem(STORAGE_KEYS.CLIENT_BRANCH) || '66';
+      }
+    } catch (e) {}
+    return '66';
+  }
+
+  getAdminBranch() {
+    try {
+      if (typeof window !== 'undefined') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const branchParam = urlParams.get('branch') || urlParams.get('b') || urlParams.get('pharmacy');
+        if (branchParam) {
+          const clean = branchParam.trim();
+          localStorage.setItem(STORAGE_KEYS.ADMIN_BRANCH, clean);
+          return clean;
+        }
+        return localStorage.getItem(STORAGE_KEYS.ADMIN_BRANCH) || '66';
+      }
+    } catch (e) {}
+    return '66';
+  }
+
+  setAdminBranch(branchId) {
+    const clean = (branchId || '66').toString().trim();
+    localStorage.setItem(STORAGE_KEYS.ADMIN_BRANCH, clean);
+    this.broadcastChange({ type: 'BRANCH_CHANGED', branchId: clean });
+    return clean;
+  }
+
   // Upload file (Supabase or LocalStorage Mock)
-  async uploadFile(file, clientName = '', onProgress = () => {}) {
+  async uploadFile(file, clientName = '', onProgress = () => {}, branchId = null) {
+    const branch = branchId || this.getClientBranch() || '66';
     const deviceId = getOrCreateDeviceId();
     const sessionId = this.getSessionId();
     const now = Date.now();
@@ -209,7 +252,7 @@ class CloudStorageManager {
         onProgress(20);
         const fileExt = file.name.split('.').pop();
         const safeName = `${Date.now()}_${Math.random().toString(36).substring(2, 6)}.${fileExt}`;
-        const storagePath = `${deviceId}/${safeName}`;
+        const storagePath = `${branch}/${deviceId}/${safeName}`;
 
         // 1. Upload to Supabase Storage
         const { error: storageError } = await this.supabaseClient.storage
@@ -232,25 +275,39 @@ class CloudStorageManager {
 
         const publicUrl = urlData?.publicUrl || '';
 
-        // 2. Insert record in DB (letting Supabase generate the UUID)
-        const { data: record, error: dbError } = await this.supabaseClient
+        // 2. Insert record in DB (including branch_id)
+        let insertData = {
+          session_id: sessionId,
+          device_id: deviceId,
+          client_name: clientName || null,
+          file_name: file.name,
+          file_size: file.size,
+          mime_type: mimeType,
+          storage_path: storagePath,
+          public_url: publicUrl,
+          created_at: new Date(now).toISOString(),
+          expires_at: new Date(expiresAt).toISOString(),
+          branch_id: branch
+        };
+
+        let { data: record, error: dbError } = await this.supabaseClient
           .from('uploaded_files')
-          .insert([
-            {
-              session_id: sessionId,
-              device_id: deviceId,
-              client_name: clientName || null,
-              file_name: file.name,
-              file_size: file.size,
-              mime_type: mimeType,
-              storage_path: storagePath,
-              public_url: publicUrl,
-              created_at: new Date(now).toISOString(),
-              expires_at: new Date(expiresAt).toISOString()
-            }
-          ])
+          .insert([insertData])
           .select()
           .single();
+
+        // Graceful retry without branch_id if column does not exist yet in DB
+        if (dbError && dbError.message && (dbError.message.includes('branch_id') || dbError.code === '42703')) {
+          console.warn('عمود branch_id غير موجود بعد في Supabase، جاري المحاولة بدون العمود:', dbError.message);
+          delete insertData.branch_id;
+          const retryRes = await this.supabaseClient
+            .from('uploaded_files')
+            .insert([insertData])
+            .select()
+            .single();
+          record = retryRes.data;
+          dbError = retryRes.error;
+        }
 
         if (dbError) {
           console.warn('تنبيه: تعذر التسجيل في جدول Supabase DB:', dbError.message);
@@ -268,7 +325,8 @@ class CloudStorageManager {
           mimeType,
           url: publicUrl,
           createdAt: now,
-          expiresAt
+          expiresAt,
+          branchId: branch
         };
 
         this.saveLocalRecord(savedRecord);
@@ -276,16 +334,17 @@ class CloudStorageManager {
         return savedRecord;
       } catch (err) {
         console.error('Supabase upload error, fallback to local demo:', err);
-        return await this.uploadLocalDemo(file, clientName, onProgress);
+        return await this.uploadLocalDemo(file, clientName, onProgress, branch);
       }
     } else {
-      return await this.uploadLocalDemo(file, clientName, onProgress);
+      return await this.uploadLocalDemo(file, clientName, onProgress, branch);
     }
   }
 
   // Upload to local storage with Blob URL
-  async uploadLocalDemo(file, clientName, onProgress) {
+  async uploadLocalDemo(file, clientName, onProgress, branchId = null) {
     onProgress(30);
+    const branch = branchId || this.getClientBranch() || '66';
     const deviceId = getOrCreateDeviceId();
     const sessionId = this.getSessionId();
     const now = Date.now();
@@ -307,7 +366,8 @@ class CloudStorageManager {
       mimeType,
       url: dataUrl,
       createdAt: now,
-      expiresAt
+      expiresAt,
+      branchId: branch
     };
 
     this.saveLocalRecord(record);
@@ -330,16 +390,27 @@ class CloudStorageManager {
   }
 
   // Retrieve files from Supabase or LocalStorage, filtering out expired files
-  async getAllActiveFiles() {
+  async getAllActiveFiles(targetBranch = null) {
     const now = Date.now();
+    const branch = targetBranch || (typeof window !== 'undefined' ? this.getAdminBranch() : null);
 
     if (this.isSupabaseConfigured && this.supabaseClient) {
       try {
-        const { data, error } = await this.supabaseClient
+        let query = this.supabaseClient
           .from('uploaded_files')
           .select('*')
-          .gte('expires_at', new Date(now).toISOString())
-          .order('created_at', { ascending: false });
+          .gte('expires_at', new Date(now).toISOString());
+
+        if (branch && branch !== 'all') {
+          // If branch is 66, also include rows with NULL branch_id for seamless backward compatibility
+          if (branch === '66') {
+            query = query.or(`branch_id.eq.${branch},branch_id.is.null`);
+          } else {
+            query = query.eq('branch_id', branch);
+          }
+        }
+
+        const { data, error } = await query.order('created_at', { ascending: false });
 
         if (!error && data) {
           return data.map((item) => ({
@@ -352,8 +423,32 @@ class CloudStorageManager {
             mimeType: item.mime_type,
             url: item.public_url || '',
             createdAt: new Date(item.created_at).getTime(),
-            expiresAt: item.expires_at ? new Date(item.expires_at).getTime() : new Date(item.created_at).getTime() + getTtlMsForMime(item.mime_type)
+            expiresAt: item.expires_at ? new Date(item.expires_at).getTime() : new Date(item.created_at).getTime() + getTtlMsForMime(item.mime_type),
+            branchId: item.branch_id || '66'
           }));
+        } else if (error && (error.message.includes('branch_id') || error.code === '42703')) {
+          // Fallback if branch_id doesn't exist in DB yet
+          const fallback = await this.supabaseClient
+            .from('uploaded_files')
+            .select('*')
+            .gte('expires_at', new Date(now).toISOString())
+            .order('created_at', { ascending: false });
+
+          if (!fallback.error && fallback.data) {
+            return fallback.data.map((item) => ({
+              id: item.id,
+              sessionId: item.session_id,
+              deviceId: item.device_id,
+              clientName: item.client_name || '',
+              fileName: item.file_name,
+              fileSize: item.file_size,
+              mimeType: item.mime_type,
+              url: item.public_url || '',
+              createdAt: new Date(item.created_at).getTime(),
+              expiresAt: item.expires_at ? new Date(item.expires_at).getTime() : new Date(item.created_at).getTime() + getTtlMsForMime(item.mime_type),
+              branchId: item.branch_id || '66'
+            }));
+          }
         }
       } catch (err) {
         console.warn('تعذر جلب الملفات من Supabase، الاعتماد على التخزين المحلي:', err);
@@ -361,7 +456,13 @@ class CloudStorageManager {
     }
 
     const local = this.getLocalRecords();
-    const validFiles = local.filter((item) => item.expiresAt > now);
+    let validFiles = local.filter((item) => item.expiresAt > now);
+    if (branch && branch !== 'all') {
+      validFiles = validFiles.filter((item) => {
+        const itemBranch = item.branchId || '66';
+        return itemBranch === branch;
+      });
+    }
     if (validFiles.length !== local.length) {
       localStorage.setItem(STORAGE_KEYS.LOCAL_FILES, JSON.stringify(validFiles));
     }
@@ -369,8 +470,9 @@ class CloudStorageManager {
   }
 
   // Get files uploaded by current device in this session
-  async getClientFiles() {
-    const all = await this.getAllActiveFiles();
+  async getClientFiles(branchId = null) {
+    const branch = branchId || this.getClientBranch() || '66';
+    const all = await this.getAllActiveFiles(branch);
     const deviceId = getOrCreateDeviceId();
     const sessionId = this.getSessionId();
     return all.filter((file) => file.deviceId === deviceId || file.sessionId === sessionId);
@@ -485,3 +587,6 @@ class CloudStorageManager {
 }
 
 export const storageManager = new CloudStorageManager();
+export const getClientBranch = () => storageManager.getClientBranch();
+export const getAdminBranch = () => storageManager.getAdminBranch();
+export const setAdminBranch = (branchId) => storageManager.setAdminBranch(branchId);
