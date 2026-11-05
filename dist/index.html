@@ -101,8 +101,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- CSS Stylesheet -->
-  <script type="module" crossorigin src="/assets/index-BGlhpbaO.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-CCLFyhVk.css">
+  <script type="module" crossorigin src="/assets/index-CiaI8tB3.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DeOPUXGk.css">
 </head>
 <body class="mode-client">
   <!-- App Wrapper -->
@@ -166,6 +166,16 @@
             </button>
           </nav>
 
+          <!-- Admin-Only Branch Switcher Pill -->
+          <div id="admin-branch-badge-wrap" class="admin-only admin-branch-badge-wrap">
+            <button id="btn-switch-branch" class="btn btn-branch-pill" title="تبديل الصيدلية / رقم الفرع (Switch Pharmacy)">
+              <span class="branch-pill-icon">🏥</span>
+              <span class="branch-pill-text" data-i18n="branchLabel">صيدلية فرع:</span>
+              <span id="current-admin-branch-label" class="branch-pill-code">66</span>
+              <span class="branch-pill-switch-hint">⇄</span>
+            </button>
+          </div>
+
           <!-- Admin-Only QR Code Button -->
           <button id="btn-show-qr" class="btn btn-orange admin-only" title="عرض وطباعة باركود العميل">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -215,6 +225,17 @@
       <section id="view-client" class="view-panel active" aria-labelledby="tab-client">
         <div class="container-narrow">
           
+          <!-- Client Pharmacy Info Badge -->
+          <div class="client-branch-indicator" id="client-branch-indicator">
+            <div class="client-branch-pill">
+              <span class="branch-icon-pulse">🏥</span>
+              <span class="branch-text-welcome" data-i18n="clientBranchWelcome">بوابة استقبال المستندات</span>
+              <span class="branch-sep">•</span>
+              <span class="branch-title-text" data-i18n="clientBranchTitle">صيدلية فرع:</span>
+              <span id="client-branch-badge" class="branch-number-badge">66</span>
+            </div>
+          </div>
+
           <!-- Drag and Drop Upload Zone -->
           <div class="glass-card upload-zone-card">
             <div id="drop-area" class="drop-zone" role="button" tabindex="0">
@@ -525,6 +546,12 @@
             </div>
             <h2 class="qr-stand-title" dir="auto" data-i18n="qrStandTitle">امسح الباركود لرفع مستنداتك وأوراق التأمين</h2>
             <p class="qr-stand-subtitle" dir="auto" data-i18n="qrStandSubtitle">لا حاجة لتسجيل الدخول • مباشر وآمن من هاتفك</p>
+            
+            <!-- Branch Stand Banner (Auto-matched with Admin Branch) -->
+            <div class="qr-stand-branch-banner">
+              <span class="branch-icon-lg">🏥</span>
+              <span class="qr-branch-name"><span data-i18n="qrPharmacyName">صيدلية الدواء</span> - <span data-i18n="qrBranchPrefix">فرع</span> <strong id="qr-stand-branch-number">66</strong></span>
+            </div>
           </div>
 
           <!-- QR Canvas Box -->
@@ -624,6 +651,49 @@
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODAL: PHARMACY / BRANCH SWITCHER MODAL (تبديل الصيدلية) -->
+  <!-- ======================================================== -->
+  <div id="modal-branch" class="modal-backdrop hidden" role="dialog" aria-modal="true">
+    <div class="modal-dialog branch-modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title" data-i18n="branchModalTitle">تبديل فرع الصيدلية 🏥</h3>
+        <button id="btn-close-branch" class="modal-close-btn" aria-label="إغلاق">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p class="settings-desc" data-i18n="branchModalDesc">
+          اختر الفرع الذي ترغب في إدارة مستنداته، أو أدخل رقم فرع جديد. سيتم عرض مستندات هذا الفرع وتوليد باركوده الخاص تلقائياً:
+        </p>
+        
+        <div class="quick-branches-wrap">
+          <span class="quick-branches-label" data-i18n="quickBranchesLabel">فروع سريعة:</span>
+          <div class="quick-branch-buttons">
+            <button type="button" class="btn btn-branch-chip" data-branch="66">🏥 صيدلية فرع 66</button>
+            <button type="button" class="btn btn-branch-chip" data-branch="741">🏥 صيدلية فرع 741</button>
+          </div>
+        </div>
+
+        <form id="form-branch" onsubmit="return false;" style="margin-top: 16px;">
+          <div class="form-group">
+            <label for="input-branch-code" class="input-label" data-i18n="inputBranchCodeLabel">رقم أو رمز الفرع:</label>
+            <input 
+              type="text" 
+              id="input-branch-code" 
+              class="text-input" 
+              placeholder="مثال: 66 أو 741" 
+              autocomplete="off"
+              dir="ltr"
+            >
+          </div>
+          <div class="branch-modal-actions">
+            <button type="button" id="btn-submit-branch" class="btn btn-orange" data-i18n="btnConfirmBranch">تأكيد ودخول الفرع</button>
+            <button type="button" id="btn-cancel-branch" class="btn btn-outline" data-i18n="btnCancel">إلغاء</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL: PIN VERIFICATION MODAL (حماية إعدادات سوبابيز برقم سري 2026) -->
   <!-- ======================================================== -->
   <div id="modal-pin" class="modal-backdrop hidden" role="dialog" aria-modal="true">
@@ -711,11 +781,20 @@
 
           <div class="code-box-wrapper">
             <button id="btn-copy-sql" class="btn-copy-code" data-i18n="btnCopyCode">نسخ الكود</button>
-            <pre class="code-pre"><code id="sql-schema-code">-- 1. إنشاء جدول الملفات مع عمود وقت الرفع
+            <pre class="code-pre"><code id="sql-schema-code">-- 1. إضافة عمود رقم الصيدلية / الفرع لجدول الملفات
+ALTER TABLE public.uploaded_files 
+ADD COLUMN IF NOT EXISTS branch_id TEXT DEFAULT '66';
+
+-- 2. إنشاء فهرس (Index) لتسريع فلترة واستعلامات كل صيدلية
+CREATE INDEX IF NOT EXISTS idx_uploaded_files_branch 
+ON public.uploaded_files(branch_id);
+
+-- 3. في حال إنشاء جدول الملفات من البداية لأول مرة:
 CREATE TABLE IF NOT EXISTS public.uploaded_files (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     session_id TEXT NOT NULL,
     device_id TEXT NOT NULL,
+    branch_id TEXT DEFAULT '66',
     client_name TEXT,
     file_name TEXT NOT NULL,
     file_size BIGINT NOT NULL,
@@ -726,7 +805,7 @@ CREATE TABLE IF NOT EXISTS public.uploaded_files (
     expires_at TIMESTAMPTZ DEFAULT (NOW() + INTERVAL '3 days')
 );
 
--- 2. تفعيل صلاحيات الرفع والقراءة للجميع (بدون لوجن)
+-- 4. تفعيل صلاحيات الرفع والقراءة للجميع (بدون لوجن)
 ALTER TABLE public.uploaded_files ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "السماح للجميع بالرفع" 
@@ -737,7 +816,7 @@ CREATE POLICY "السماح بعرض ملفات آخر 3 أيام"
 ON public.uploaded_files FOR SELECT 
 USING (created_at >= NOW() - INTERVAL '3 days');
 
--- 3. دالة الحذف التلقائي للملفات المنتهية بعد 3 أيام
+-- 5. دالة الحذف التلقائي للملفات المنتهية بعد 3 أيام
 CREATE OR REPLACE FUNCTION delete_expired_files()
 RETURNS void AS $$
 BEGIN
@@ -746,7 +825,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- 4. إعداد Storage Bucket في Supabase:
+-- 6. إعداد Storage Bucket في Supabase:
 -- قم بإنشاء Bucket باسم 'client-documents' واجعله Public.
 </code></pre>
           </div>
