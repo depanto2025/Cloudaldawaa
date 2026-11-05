@@ -1338,7 +1338,7 @@ body {
 
 /* Client Session Header Row */
 .tr-client-session td {
-  padding: 10px 10px 4px 10px !important;
+  padding: 14px 10px 0 10px !important;
   border-bottom: none !important;
   background: transparent !important;
 }
@@ -1353,6 +1353,92 @@ body {
   border-inline-start: 5px solid #3B82F6;
   border-radius: var(--radius-lg);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+/* Centered Session & Device Box */
+.client-session-bar.centered-session-box {
+  max-width: 920px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 18px 24px;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.12) !important;
+}
+
+.session-device-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.session-device-badge-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 22px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1.5px solid rgba(255, 255, 255, 0.15);
+  border-radius: var(--radius-full);
+}
+
+.device-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(14, 165, 233, 0.25);
+  border: 1.5px solid #38BDF8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #38BDF8;
+  flex-shrink: 0;
+}
+
+.device-text-details {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.device-text-details .session-client-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--white-pure);
+}
+
+.device-text-details .device-chip {
+  font-family: var(--font-code);
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.35);
+  color: #38BDF8;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+}
+
+.session-meta-row-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.session-actions-group.centered-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 4px;
 }
 
 .client-session-main-row {
@@ -1683,15 +1769,29 @@ body {
   background: transparent !important;
 }
 
+.tr-session-member td {
+  padding: 0 10px !important;
+  background: transparent !important;
+  border-bottom: none !important;
+}
+
 .file-card-box {
+  max-width: 920px;
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 14px 18px;
   background: rgba(15, 23, 42, 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: var(--radius-md);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-top: none !important;
+  border-radius: 0;
   transition: all 0.2s ease-in-out;
+}
+
+.tr-session-member.is-last-of-session .file-card-box {
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important;
+  margin-bottom: 24px;
 }
 
 .file-card-box:hover {
@@ -3382,23 +3482,74 @@ html[data-theme="light"] .date-group-badge.is-today-meta-badge {
   color: #0369A1 !important;
 }
 
-html[data-theme="light"] .is-today-session .client-session-bar.is-today-session-bar {
-  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 70%, #F8FAFC 100%) !important;
-  border: 2px solid #0284C7 !important;
-  border-inline-start: 7px solid #0284C7 !important;
-  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.14) !important;
+html[data-theme="light"] .client-session-bar.centered-session-box {
+  background: #F8FAFC !important;
+  border: 1.5px solid #CBD5E1 !important;
+  border-bottom: 1px dashed #CBD5E1 !important;
 }
 
-html[data-theme="light"] .is-today-file .file-card-box.is-today-file-box {
-  background: #F0F9FF !important;
-  border: 2px solid #38BDF8 !important;
-  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.1) !important;
+html[data-theme="light"] .session-device-badge-box {
+  background: #FFFFFF !important;
+  border: 1.5px solid #CBD5E1 !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
 }
 
-html[data-theme="light"] .is-today-file .file-card-box.is-today-file-box:hover {
+html[data-theme="light"] .device-icon-circle {
   background: #E0F2FE !important;
-  border-color: #0284C7 !important;
-  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.18) !important;
+  border-color: #BAE6FD !important;
+  color: #0284C7 !important;
+}
+
+html[data-theme="light"] .device-text-details .session-client-name {
+  color: #0F172A !important;
+}
+
+html[data-theme="light"] .device-text-details .device-chip {
+  background: #F1F5F9 !important;
+  color: #0284C7 !important;
+  border-color: #BAE6FD !important;
+}
+
+/* Today's Unified Frame around Centered Device Box & Uploaded Files */
+html[data-theme="light"] .is-today-session .client-session-bar.centered-session-box {
+  background: linear-gradient(180deg, #E0F2FE 0%, #F0F9FF 100%) !important;
+  border: 2.5px solid #0284C7 !important;
+  border-bottom: 1px dashed #BAE6FD !important;
+  box-shadow: 0 -4px 18px rgba(2, 132, 199, 0.12) !important;
+}
+
+html[data-theme="light"] .is-today-file .file-card-box {
+  background: #FFFFFF !important;
+  border: 2.5px solid #0284C7 !important;
+  border-top: 1px dashed #BAE6FD !important;
+  border-bottom: none !important;
+}
+
+html[data-theme="light"] .is-today-file.is-last-of-session .file-card-box {
+  border-bottom: 2.5px solid #0284C7 !important;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important;
+  box-shadow: 0 8px 24px rgba(2, 132, 199, 0.14) !important;
+}
+
+/* Latest Client Block in Light Mode */
+html[data-theme="light"] .tr-client-session.is-latest-client .client-session-bar.centered-session-box {
+  background: linear-gradient(180deg, #D1FAE5 0%, #ECFDF5 100%) !important;
+  border: 2.5px solid #059669 !important;
+  border-bottom: 1px dashed #6EE7B7 !important;
+  box-shadow: 0 -4px 22px rgba(5, 150, 105, 0.16) !important;
+}
+
+html[data-theme="light"] .tr-session-member.is-latest-client-member .file-card-box {
+  background: #FFFFFF !important;
+  border: 2.5px solid #059669 !important;
+  border-top: 1px dashed #A7F3D0 !important;
+  border-bottom: none !important;
+}
+
+html[data-theme="light"] .tr-session-member.is-latest-client-member.is-last-of-session .file-card-box {
+  border-bottom: 2.5px solid #059669 !important;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important;
+  box-shadow: 0 8px 26px rgba(5, 150, 105, 0.16) !important;
 }
 
 html[data-theme="light"] .session-today-chip {

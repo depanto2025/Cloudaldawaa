@@ -1710,7 +1710,7 @@ function renderAdminFilesTable() {
 
       sessionTr.innerHTML = `
         <td colspan="7">
-          <div class="client-session-bar ${isToday ? 'is-today-session-bar' : ''} ${isLatestClient ? 'latest-client-bar-glow' : ''}">
+          <div class="client-session-bar centered-session-box ${isToday ? 'is-today-session-bar' : ''} ${isLatestClient ? 'latest-client-bar-glow' : ''}">
             ${isLatestClient ? `
               <div class="latest-client-top-banner">
                 <div class="latest-pulse-box">
@@ -1722,45 +1722,45 @@ function renderAdminFilesTable() {
               </div>
             ` : ''}
 
-            <div class="client-session-main-row">
-              <div class="session-left-group">
-                <div class="session-client-badge">
-                  <div class="session-user-avatar">
-                    <svg class="session-user-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                      <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                  </div>
-                  <div class="session-client-info">
-                    <span class="session-client-name" dir="auto">${clientDisplayName}</span>
-                    <span class="device-chip">${session.deviceId}</span>
-                  </div>
+            <div class="session-device-header-center">
+              <div class="session-device-badge-box">
+                <div class="device-icon-circle">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                    <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                    <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                  </svg>
                 </div>
+                <div class="device-text-details">
+                  <span class="session-client-name" dir="auto">${clientDisplayName}</span>
+                  <span class="device-chip">📱 ${session.deviceId}</span>
+                </div>
+              </div>
 
+              <div class="session-meta-row-center">
                 ${isToday && !isLatestClient ? `
-                  <div class="session-today-chip">
+                  <span class="session-today-chip">
                     <span class="today-chip-star">✨</span>
                     <span>${t('todayUploadsTag')}</span>
-                  </div>
+                  </span>
                 ` : ''}
 
-                <div class="session-time-chip">
+                <span class="session-time-chip">
                   <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
                   <span>${formatSessionTime(session.latestTimestamp)}</span>
-                </div>
+                </span>
 
-                <div class="session-summary-chip">
+                <span class="session-summary-chip">
                   <svg class="session-folder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                   </svg>
                   <span>${formatSessionSummary(session.files)}</span>
-                </div>
+                </span>
               </div>
 
-              <div class="session-actions-group">
+              <div class="session-actions-group centered-actions">
                 ${session.files.length === 1 ? `
                   <button class="btn btn-session-download-single" title="${t('btnDownloadSingle')}">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1844,9 +1844,10 @@ function renderAdminFilesTable() {
       DOM.adminTableBody.appendChild(sessionTr);
 
       // 4. Render files belonging to this session with ACTION BUTTONS DIRECTLY UNDERNEATH
-      session.files.forEach((file) => {
+      session.files.forEach((file, fileIdx) => {
+        const isLastFile = fileIdx === session.files.length - 1;
         const fileTr = document.createElement('tr');
-        fileTr.className = `tr-session-member ${isToday ? 'is-today-file' : 'is-older-file'} ${isLatestClient ? 'is-latest-client-member' : ''}`;
+        fileTr.className = `tr-session-member ${isToday ? 'is-today-file' : 'is-older-file'} ${isLatestClient ? 'is-latest-client-member' : ''} ${isLastFile ? 'is-last-of-session' : ''}`;
 
         const isImage = file.mimeType.startsWith('image/');
         const expiry = formatRemainingTime(file.expiresAt);
@@ -2281,8 +2282,12 @@ function attachEventListeners() {
   };
 
   // Protected settings triggers (Requires PIN 2026)
-  DOM.btnSettings.addEventListener('click', () => promptPinForSettings(openSettings));
-  DOM.btnQuickConfig.addEventListener('click', () => promptPinForSettings(openSettings));
+  if (DOM.btnSettings) {
+    DOM.btnSettings.addEventListener('click', () => promptPinForSettings(openSettings));
+  }
+  if (DOM.btnQuickConfig) {
+    DOM.btnQuickConfig.addEventListener('click', () => promptPinForSettings(openSettings));
+  }
   DOM.btnShowSchemaLink.addEventListener('click', (e) => {
     e.preventDefault();
     promptPinForSettings(() => {
