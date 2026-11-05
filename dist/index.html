@@ -101,8 +101,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- CSS Stylesheet -->
-  <script type="module" crossorigin src="/assets/index-CiaI8tB3.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DeOPUXGk.css">
+  <script type="module" crossorigin src="/assets/index-CSmCVZD7.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-8MGCblLV.css">
 </head>
 <body class="mode-client">
   <!-- App Wrapper -->
@@ -206,15 +206,6 @@
         </div>
       </div>
     </header>
-
-    <!-- Admin-Only Storage Status Banner -->
-    <div id="storage-status-bar" class="status-banner local-mode admin-only">
-      <div class="banner-inner">
-        <span class="status-indicator"></span>
-        <span id="storage-status-text">نظام التخزين: متصل بـ Supabase</span>
-        <button id="btn-quick-config" class="btn-link">إعداد مفاتيح Supabase ⚡</button>
-      </div>
-    </div>
 
     <!-- Main Content Area -->
     <main class="main-body">
@@ -684,6 +675,34 @@
               dir="ltr"
             >
           </div>
+          
+          <!-- Live Branch Links Card with 1-Click Copy -->
+          <div class="branch-links-card">
+            <div class="branch-link-row">
+              <div class="branch-link-header">
+                <span class="branch-link-badge admin">🔑 رابط الأدمن للفرع (Admin Link):</span>
+                <button type="button" id="btn-copy-admin-branch-url" class="btn btn-xs btn-outline btn-copy-link" title="نسخ رابط الأدمن">
+                  📋 نسخ
+                </button>
+              </div>
+              <div class="branch-url-box">
+                <code id="branch-admin-url-preview" class="branch-url-code" dir="ltr">https://...</code>
+              </div>
+            </div>
+
+            <div class="branch-link-row" style="margin-top: 12px;">
+              <div class="branch-link-header">
+                <span class="branch-link-badge client">📱 رابط العميل المباشر (Client Link):</span>
+                <button type="button" id="btn-copy-client-branch-url" class="btn btn-xs btn-outline btn-copy-link" title="نسخ رابط العميل">
+                  📋 نسخ
+                </button>
+              </div>
+              <div class="branch-url-box">
+                <code id="branch-client-url-preview" class="branch-url-code" dir="ltr">https://...</code>
+              </div>
+            </div>
+          </div>
+
           <div class="branch-modal-actions">
             <button type="button" id="btn-submit-branch" class="btn btn-orange" data-i18n="btnConfirmBranch">تأكيد ودخول الفرع</button>
             <button type="button" id="btn-cancel-branch" class="btn btn-outline" data-i18n="btnCancel">إلغاء</button>
