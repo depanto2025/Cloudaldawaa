@@ -25,6 +25,10 @@ const TRANSLATIONS = {
     btnConfirmBranch: 'تأكيد ودخول الفرع',
     btnCancel: 'إلغاء',
     branchSwitched: 'تم الانتقال بنجاح إلى صيدلية فرع ',
+    todayActiveGroup: 'مرفوعات اليوم الحالية 🌟',
+    todayUploadsTag: 'مرفوع اليوم',
+    todayBadgeText: 'اليوم',
+    todaySubtitle: 'المستندات الواردة اليوم بتاريخ فتح الموقع',
     filesUploadedOnDay: 'سجل المستندات المرفوعة في هذا اليوم',
     previousUploadsDivider: 'سجل الرفوعات السابقة',
     latestClientPrompt: 'تم الرفع للتو • جاهز للمعاينة والطباعة الفورية',
@@ -145,6 +149,10 @@ const TRANSLATIONS = {
     btnConfirmBranch: 'Confirm & Switch Branch',
     btnCancel: 'Cancel',
     branchSwitched: 'Switched to Pharmacy Branch ',
+    todayActiveGroup: "Today's Live Uploads 🌟",
+    todayUploadsTag: "Today's Upload",
+    todayBadgeText: 'Today',
+    todaySubtitle: 'Documents received today on current site date',
     filesUploadedOnDay: 'Documents uploaded on this day',
     previousUploadsDivider: 'Previous Client Uploads',
     latestClientPrompt: 'Just uploaded • Ready for instant preview & printing',
@@ -357,6 +365,10 @@ const DOM = {
   btnCancelBranch: document.getElementById('btn-cancel-branch'),
   btnSubmitBranch: document.getElementById('btn-submit-branch'),
   inputBranchCode: document.getElementById('input-branch-code'),
+  branchAdminUrlPreview: document.getElementById('branch-admin-url-preview'),
+  branchClientUrlPreview: document.getElementById('branch-client-url-preview'),
+  btnCopyAdminBranchUrl: document.getElementById('btn-copy-admin-branch-url'),
+  btnCopyClientBranchUrl: document.getElementById('btn-copy-client-branch-url'),
 
   // Toast
   toastContainer: document.getElementById('toast-container')
@@ -618,6 +630,7 @@ function switchView(target) {
 
 // Update Storage Status Banner
 function updateStorageStatusBanner() {
+  if (!DOM.storageStatusBar || !DOM.storageStatusText) return;
   const config = storageManager.getSupabaseConfig();
   if (config.isConfigured) {
     DOM.storageStatusBar.className = 'status-banner supabase-mode admin-only';
@@ -663,6 +676,21 @@ function updateBranchBadges() {
   });
 }
 
+function updateModalBranchUrls(branchCode = null) {
+  const code = (branchCode || (DOM.inputBranchCode ? DOM.inputBranchCode.value : '') || getAdminBranch() || '66').trim();
+  const origin = window.location.origin;
+  const path = window.location.pathname;
+  const adminUrl = `${origin}${path}?mode=admin&branch=${encodeURIComponent(code)}`;
+  const clientUrl = `${origin}${path}?branch=${encodeURIComponent(code)}`;
+  
+  if (DOM.branchAdminUrlPreview) {
+    DOM.branchAdminUrlPreview.textContent = adminUrl;
+  }
+  if (DOM.branchClientUrlPreview) {
+    DOM.branchClientUrlPreview.textContent = clientUrl;
+  }
+}
+
 // Branch Switcher Modal handlers
 function openBranchModal() {
   const current = getAdminBranch();
@@ -670,6 +698,7 @@ function openBranchModal() {
     DOM.inputBranchCode.value = current;
   }
   updateBranchBadges();
+  updateModalBranchUrls(current);
   DOM.modalBranch.classList.remove('hidden');
   if (DOM.inputBranchCode) {
     DOM.inputBranchCode.focus();
@@ -1625,16 +1654,20 @@ function renderAdminFilesTable() {
     });
   });
 
+  const todayKey = getDateKey(Date.now());
+
   // 2. Iterate each Date Group
   dateGroups.forEach((group, groupIdx) => {
+    const isToday = group.dateKey === todayKey;
+
     // Render Date Group Divider Row (Prominent Visual Separation for Each Day)
     const dateTr = document.createElement('tr');
-    dateTr.className = `tr-date-group ${groupIdx > 0 ? 'is-subsequent-date' : ''}`;
+    dateTr.className = `tr-date-group ${groupIdx > 0 ? 'is-subsequent-date' : ''} ${isToday ? 'is-today-group' : 'is-older-group'}`;
     dateTr.innerHTML = `
       <td colspan="7">
-        <div class="date-group-bar">
+        <div class="date-group-bar ${isToday ? 'is-today-bar' : ''}">
           <div class="date-group-title">
-            <div class="date-calendar-badge">
+            <div class="date-calendar-badge ${isToday ? 'is-today-calendar-badge' : ''}">
               <svg class="date-calendar-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                 <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -1643,12 +1676,15 @@ function renderAdminFilesTable() {
               </svg>
             </div>
             <div class="date-group-headings">
-              <span class="date-group-text">${formatDateGroupTitle(group.dateKey, group.sampleTimestamp)}</span>
-              <span class="date-group-subtext">${t('filesUploadedOnDay')}</span>
+              <div class="date-title-flex">
+                <span class="date-group-text">${formatDateGroupTitle(group.dateKey, group.sampleTimestamp)}</span>
+                ${isToday ? `<span class="badge-today-glow"><span class="pulse-dot"></span>${t('todayActiveGroup')}</span>` : ''}
+              </div>
+              <span class="date-group-subtext">${isToday ? t('todaySubtitle') : t('filesUploadedOnDay')}</span>
             </div>
           </div>
           <div class="date-group-meta">
-            <span class="date-group-badge">
+            <span class="date-group-badge ${isToday ? 'is-today-meta-badge' : ''}">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
               </svg>
@@ -1668,13 +1704,13 @@ function renderAdminFilesTable() {
 
       // Render Client Session Header Row
       const sessionTr = document.createElement('tr');
-      sessionTr.className = `tr-client-session ${isLatestClient ? 'is-latest-client is-latest-client-block' : ''}`;
+      sessionTr.className = `tr-client-session ${isToday ? 'is-today-session' : 'is-older-session'} ${isLatestClient ? 'is-latest-client is-latest-client-block' : ''}`;
 
       const clientDisplayName = session.clientName ? session.clientName : t('unnamedClient');
 
       sessionTr.innerHTML = `
         <td colspan="7">
-          <div class="client-session-bar ${isLatestClient ? 'latest-client-bar-glow' : ''}">
+          <div class="client-session-bar ${isToday ? 'is-today-session-bar' : ''} ${isLatestClient ? 'latest-client-bar-glow' : ''}">
             ${isLatestClient ? `
               <div class="latest-client-top-banner">
                 <div class="latest-pulse-box">
@@ -1700,6 +1736,13 @@ function renderAdminFilesTable() {
                     <span class="device-chip">${session.deviceId}</span>
                   </div>
                 </div>
+
+                ${isToday && !isLatestClient ? `
+                  <div class="session-today-chip">
+                    <span class="today-chip-star">✨</span>
+                    <span>${t('todayUploadsTag')}</span>
+                  </div>
+                ` : ''}
 
                 <div class="session-time-chip">
                   <svg class="session-clock-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1803,7 +1846,7 @@ function renderAdminFilesTable() {
       // 4. Render files belonging to this session with ACTION BUTTONS DIRECTLY UNDERNEATH
       session.files.forEach((file) => {
         const fileTr = document.createElement('tr');
-        fileTr.className = `tr-session-member ${isLatestClient ? 'is-latest-client-member' : ''}`;
+        fileTr.className = `tr-session-member ${isToday ? 'is-today-file' : 'is-older-file'} ${isLatestClient ? 'is-latest-client-member' : ''}`;
 
         const isImage = file.mimeType.startsWith('image/');
         const expiry = formatRemainingTime(file.expiresAt);
@@ -1814,7 +1857,7 @@ function renderAdminFilesTable() {
 
         fileTr.innerHTML = `
           <td colspan="7">
-            <div class="file-card-box">
+            <div class="file-card-box ${isToday ? 'is-today-file-box' : ''}">
               <div class="file-card-main-row">
                 <div class="file-card-thumb-wrap" title="${t('btnPreview')}">
                   ${thumbHtml}
@@ -1822,6 +1865,7 @@ function renderAdminFilesTable() {
                 <div class="file-card-content">
                   <div class="file-card-title-row">
                     <span class="file-card-filename" title="${file.fileName}" dir="auto">${file.fileName}</span>
+                    ${isToday ? `<span class="chip-today-ribbon">✨ ${t('todayBadgeText')}</span>` : ''}
                   </div>
                   <div class="file-card-meta-chips">
                     <span class="meta-chip chip-type">${isImage ? '🖼️ ' + t('imageType') : '📄 ' + t('pdfType')}</span>
@@ -2137,10 +2181,42 @@ function attachEventListeners() {
     DOM.btnSubmitBranch.addEventListener('click', () => handleBranchSubmit());
   }
   if (DOM.inputBranchCode) {
+    DOM.inputBranchCode.addEventListener('input', () => {
+      updateModalBranchUrls();
+    });
     DOM.inputBranchCode.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
         handleBranchSubmit();
+      }
+    });
+  }
+
+  // Copy Branch Direct Links
+  if (DOM.btnCopyAdminBranchUrl) {
+    DOM.btnCopyAdminBranchUrl.addEventListener('click', async () => {
+      const url = DOM.branchAdminUrlPreview ? DOM.branchAdminUrlPreview.textContent : '';
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast(currentLang === 'ar' ? 'تم نسخ رابط الأدمن للفرع بنجاح 📋' : 'Admin branch link copied! 📋', 'success');
+        } catch (err) {
+          showToast(url, 'info');
+        }
+      }
+    });
+  }
+
+  if (DOM.btnCopyClientBranchUrl) {
+    DOM.btnCopyClientBranchUrl.addEventListener('click', async () => {
+      const url = DOM.branchClientUrlPreview ? DOM.branchClientUrlPreview.textContent : '';
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url);
+          showToast(currentLang === 'ar' ? 'تم نسخ رابط العميل للفرع بنجاح 📋' : 'Client branch link copied! 📋', 'success');
+        } catch (err) {
+          showToast(url, 'info');
+        }
       }
     });
   }

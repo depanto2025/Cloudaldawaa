@@ -1234,6 +1234,108 @@ body {
   border-radius: var(--radius-full);
 }
 
+/* ==========================================================================
+   TODAY'S UPLOADS SPECIAL HIGHLIGHT & DISTINCT FRAME
+   ========================================================================== */
+
+/* Date Header for Today */
+.date-group-bar.is-today-bar {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.28) 0%, rgba(30, 58, 138, 0.45) 40%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 2px solid #38BDF8 !important;
+  border-inline-start: 7px solid #0EA5E9 !important;
+  box-shadow: 0 0 25px rgba(14, 165, 233, 0.25), 0 8px 30px rgba(0, 0, 0, 0.4) !important;
+}
+
+.date-calendar-badge.is-today-calendar-badge {
+  background: rgba(14, 165, 233, 0.25) !important;
+  border: 1.5px solid #38BDF8 !important;
+}
+
+.date-calendar-badge.is-today-calendar-badge .date-calendar-icon {
+  color: #38BDF8 !important;
+}
+
+.date-title-flex {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.badge-today-glow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%);
+  border: 1px solid #38BDF8;
+  border-radius: var(--radius-full);
+  color: #FFFFFF;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
+}
+
+.badge-today-glow .pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #38BDF8;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #38BDF8;
+  animation: pulse-ring 1.5s infinite;
+}
+
+.date-group-badge.is-today-meta-badge {
+  color: #BAE6FD !important;
+  background: rgba(14, 165, 233, 0.25) !important;
+  border-color: #38BDF8 !important;
+}
+
+/* Today's Client Session Bar (Distinct Frame & Background) */
+.is-today-session .client-session-bar.is-today-session-bar {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.16) 0%, rgba(30, 41, 59, 0.95) 50%, rgba(15, 23, 42, 0.98) 100%) !important;
+  border: 2px solid #38BDF8 !important;
+  border-inline-start: 6px solid #0EA5E9 !important;
+  box-shadow: 0 4px 20px rgba(14, 165, 233, 0.18) !important;
+}
+
+/* Today's File Cards (Distinct Frame & Background) */
+.is-today-file .file-card-box.is-today-file-box {
+  background: linear-gradient(180deg, rgba(14, 165, 233, 0.1) 0%, rgba(15, 23, 42, 0.94) 100%) !important;
+  border: 2px solid rgba(56, 189, 248, 0.6) !important;
+  box-shadow: 0 4px 18px rgba(14, 165, 233, 0.14) !important;
+}
+
+.is-today-file .file-card-box.is-today-file-box:hover {
+  border-color: #38BDF8 !important;
+  box-shadow: 0 6px 24px rgba(14, 165, 233, 0.25) !important;
+}
+
+.session-today-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  background: rgba(14, 165, 233, 0.2);
+  border: 1px solid #38BDF8;
+  border-radius: var(--radius-full);
+  color: #7DD3FC;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.chip-today-ribbon {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background: rgba(14, 165, 233, 0.25);
+  border: 1px solid #38BDF8;
+  border-radius: 4px;
+  color: #7DD3FC;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 /* Client Session Header Row */
 .tr-client-session td {
   padding: 10px 10px 4px 10px !important;
@@ -1903,6 +2005,65 @@ body {
   background: rgba(16, 185, 129, 0.2);
   border-color: #10B981;
   color: #34D399;
+}
+
+/* Branch Live Links Box */
+.branch-links-card {
+  margin-top: 16px;
+  background: rgba(11, 25, 44, 0.6);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+
+.branch-link-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.branch-link-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.branch-link-badge {
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.branch-link-badge.admin {
+  color: #60A5FA;
+}
+
+.branch-link-badge.client {
+  color: #34D399;
+}
+
+.branch-url-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.branch-url-code {
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 0.78rem;
+  color: var(--white-pure);
+  user-select: all;
+}
+
+.btn-xs {
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  border-radius: var(--radius-sm);
 }
 
 .branch-modal-actions {
@@ -3191,6 +3352,67 @@ html[data-theme="light"] .file-card-box:hover {
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08) !important;
 }
 
+/* Light Mode Today's Uploads Frame & Distinct Background */
+html[data-theme="light"] .date-group-bar.is-today-bar {
+  background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 35%, #FFFFFF 100%) !important;
+  border: 2.5px solid #0284C7 !important;
+  border-inline-start: 8px solid #0284C7 !important;
+  box-shadow: 0 6px 22px rgba(2, 132, 199, 0.18) !important;
+}
+
+html[data-theme="light"] .date-calendar-badge.is-today-calendar-badge {
+  background: #E0F2FE !important;
+  border: 1.5px solid #0284C7 !important;
+}
+
+html[data-theme="light"] .date-calendar-badge.is-today-calendar-badge .date-calendar-icon {
+  color: #0284C7 !important;
+}
+
+html[data-theme="light"] .badge-today-glow {
+  background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+  border-color: #0284C7 !important;
+  color: #FFFFFF !important;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.3) !important;
+}
+
+html[data-theme="light"] .date-group-badge.is-today-meta-badge {
+  background: #E0F2FE !important;
+  border-color: #0284C7 !important;
+  color: #0369A1 !important;
+}
+
+html[data-theme="light"] .is-today-session .client-session-bar.is-today-session-bar {
+  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 70%, #F8FAFC 100%) !important;
+  border: 2px solid #0284C7 !important;
+  border-inline-start: 7px solid #0284C7 !important;
+  box-shadow: 0 4px 18px rgba(2, 132, 199, 0.14) !important;
+}
+
+html[data-theme="light"] .is-today-file .file-card-box.is-today-file-box {
+  background: #F0F9FF !important;
+  border: 2px solid #38BDF8 !important;
+  box-shadow: 0 4px 16px rgba(14, 165, 233, 0.1) !important;
+}
+
+html[data-theme="light"] .is-today-file .file-card-box.is-today-file-box:hover {
+  background: #E0F2FE !important;
+  border-color: #0284C7 !important;
+  box-shadow: 0 6px 20px rgba(2, 132, 199, 0.18) !important;
+}
+
+html[data-theme="light"] .session-today-chip {
+  background: #E0F2FE !important;
+  border: 1px solid #0284C7 !important;
+  color: #0369A1 !important;
+}
+
+html[data-theme="light"] .chip-today-ribbon {
+  background: #E0F2FE !important;
+  border: 1px solid #0284C7 !important;
+  color: #0369A1 !important;
+}
+
 html[data-theme="light"] .file-card-filename {
   color: #C2410C !important;
 }
@@ -3317,6 +3539,20 @@ html[data-theme="light"] .btn-branch-chip.active {
   background: #ECFDF5 !important;
   border-color: #059669 !important;
   color: #065F46 !important;
+}
+
+html[data-theme="light"] .branch-links-card {
+  background: #F8FAFC !important;
+  border-color: #E2E8F0 !important;
+}
+
+html[data-theme="light"] .branch-url-box {
+  background: #FFFFFF !important;
+  border-color: #CBD5E1 !important;
+}
+
+html[data-theme="light"] .branch-url-code {
+  color: #0F172A !important;
 }
 
 /* Mobile Responsive Adjustments */
